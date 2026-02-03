@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Lane</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background: #0a0a1a;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        #gameCanvas {
+            display: block;
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+(function() {
+    'use strict';
+
+    // === POLYFILL for older mobile browsers ===
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+        CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+            if (w < 2 * r) r = w / 2;
+            if (h < 2 * r) r = h / 2;
+            this.beginPath();
+            this.moveTo(x + r, y);
+            this.arcTo(x + w, y, x + w, y + h, r);
+            this.arcTo(x + w, y + h, x, y + h, r);
+            this.arcTo(x, y + h, x, y, r);
+            this.arcTo(x, y, x + w, y, r);
+            this.closePath();
+            return this;
+        };
+    }
+
+    // === CONSTANTS ===
+    const COLORS = {
+        bg: '#1A1B2E',
+        bgLight: '#2C2F4D',
+        primary1: '#9C27B0',
+        primary2: '#2196F3',
+        accent: '#00E5FF',
+        pink: '#E91E63',
+        yellow: '#FFEB3B',
+        red: '#F44336',
+        white: '#FFFFFF',
+        success: '#4CAF50',
+        textPrimary: '#FFFFFF',
+        textSecondary: '#B0B0B0'
+    };
+
+    // === CANVAS SETUP ===
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let W, H, scale;
+    const BASE_W = 540, BASE_H = 960;
+
+    function resize() {
+        const ratio = BASE_W / BASE_H;
+        const winRatio = window.innerWidth / window.innerHeight;
+        if (winRatio < ratio) {
+            W = window.innerWidth;
+            H = W / ratio;
+        } else {
+            H = window.innerHeight;
+            W = H * ratio;
+        }
+        canvas.width = W;
+        canvas.height = H;
+        scale = W / BASE_W;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    // === AUDIO SYSTEM ===
+    let audioCtx = null;
+    let audioEnabled = true;
+    let musicEnabled = true;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playTone(freq, duration, type = 'sine', vol = 0.3) {
+        if (!audioCtx || !audioEnabled) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function playLaunch() {
+        if (!audioCtx || !audioEnabled) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1500, audioCtx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.25);
+    }
+
+    function playPinHit() {
+        playTone(2000 + Math.random() * 1000, 0.1, 'sine', 0.3);
+    }
+
+    function playStrike() {
+        if (!audioCtx || !audioEnabled) return;
+        [523, 659, 784].forEach((f, i) => {
+            setTimeout(() => playTone(f, 0.4, 'triangle', 0.4), i * 100);
+        });
+    }
+
+    function playSpare() {
+        playTone(600, 0.2, 'sine', 0.35);
+        setTimeout(() => playTone(750, 0.25, 'sine', 0.35), 120);
+    }
+
+    function playClick() {
+        playTone(2000, 0.05, 'square', 0.2);
+    }
+
+    function playFail() {
+        playTone(300, 0.3, 'sine', 0.3);
+    }
+
+    // === OBJECT POOLS ===
+    const particlePool = [];
+    const MAX_PARTICLES = 50;
+    for (let i = 0; i < MAX_PARTICLES; i++) {
+        particlePool.push({ active: false, x: 0, y: 0, vx: 0, vy: 0, life: 0, maxLife: 0, color: '', size: 0 });
+    }
+
+    function spawnParticle(x, y, vx, vy, life, color, size) {
+        for (let p of particlePool) {
+            if (!p.active) {
+                p.active = true;
+                p.x = x; p.y = y; p.vx = vx; p.vy = vy;
+                p.life = life; p.maxLife = life;
+                p.color = color; p.size = size;
+                return;
+            }
+        }
+    }
+
+    function spawnBurst(x, y, count, color) {
+        for (let i = 0; i < count; i++) {
+            const angle = (Math.PI * 2 / count) * i + Math.random() * 0.3;
+            const speed = 100 + Math.random() * 150;
+            spawnParticle(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, 0.5, color, 4 + Math.random() * 6);
+        }
+    }
+
+    function updateParticles(dt) {
+        for (let p of particlePool) {
+            if (p.active) {
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.vy += 200 * dt;
+                p.life -= dt;
+                if (p.life <= 0) p.active = false;
+            }
+        }
+    }
+
+    function drawParticles() {
+        for (let p of particlePool) {
+            if (p.active) {
+                const alpha = p.life / p.maxLife;
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x * scale, p.y * scale, p.size * scale, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    // === GAME STATE ===
+    const STATE = {
+        MENU: 0,
+        PLAYING: 1,
+        AIMING: 2,
+        ROLLING: 3,
+        SETTLING: 4,
+        RESULT: 5,
+        LEVEL_COMPLETE: 6,
+        GAME_OVER: 7,
+        PAUSED: 8
+    };
+
+    let gameState = STATE.MENU;
+    let level = 1;
+    let frame = 1;
+    let maxFrames = 5;
+    let score = 0;
+    let pinsKnocked = 0;
+    let targetPins = 30;
+    let shotNumber = 1;
+    let screenShake = 0;
+    let flashAlpha = 0;
+    let resultText = '';
+    let resultTimer = 0;
+
+    // === BALL ===
+    const ball = {
+        x: BASE_W / 2,
+        y: BASE_H - 150,
+        vx: 0,
+        vy: 0,
+        radius: 20,
+        active: false,
+        trail: []
+    };
+
+    // === PINS ===
+    const pins = [];
+    const PIN_ROWS = [1, 2, 3, 4];
+    const PIN_START_Y = 200;
+    const PIN_SPACING = 40;
+
+    function setupPins() {
+        pins.length = 0;
+        let pinIndex = 0;
+        for (let row = 0; row < PIN_ROWS.length; row++) {
+            const count = PIN_ROWS[row];
+            const rowY = PIN_START_Y + row * PIN_SPACING;
+            const startX = BASE_W / 2 - ((count - 1) * PIN_SPACING) / 2;
+            for (let i = 0; i < count; i++) {
+                pins.push({
+                    x: startX + i * PIN_SPACING,
+                    y: rowY,
+                    vx: 0,
+                    vy: 0,
+                    angle: 0,
+                    angularVel: 0,
+                    knocked: false,
+                    radius: 12,
+                    height: 50
+                });
+                pinIndex++;
+            }
+        }
+    }
+
+    function resetBall() {
+        ball.x = BASE_W / 2;
+        ball.y = BASE_H - 150;
+        ball.vx = 0;
+        ball.vy = 0;
+        ball.active = false;
+        ball.trail = [];
+    }
+
+    function resetForShot() {
+        resetBall();
+        if (shotNumber === 1) {
+            setupPins();
+        }
+    }
+
+    function startLevel(lvl) {
+        level = lvl;
+        frame = 1;
+        score = 0;
+        pinsKnocked = 0;
+        shotNumber = 1;
+        targetPins = 20 + lvl * 10;
+        maxFrames = 5 + Math.floor(lvl / 2);
+        setupPins();
+        resetBall();
+        gameState = STATE.AIMING;
+    }
+
+    // === INPUT ===
+    let touchStartX = 0, touchStartY = 0;
+    let touchStartTime = 0;
+    let isTouching = false;
+    let aimX = 0;
+
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseup', handleMouseUp);
+
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+        const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+        return { x: x / scale, y: y / scale };
+    }
+
+    function handleTouchStart(e) {
+        e.preventDefault();
+        initAudio();
+        const pos = getPos(e);
+        handleInputStart(pos.x, pos.y);
+    }
+
+    function handleTouchMove(e) {
+        e.preventDefault();
+        const pos = getPos(e);
+        handleInputMove(pos.x, pos.y);
+    }
+
+    function handleTouchEnd(e) {
+        e.preventDefault();
+        handleInputEnd();
+    }
+
+    function handleMouseDown(e) {
+        initAudio();
+        const pos = getPos(e);
+        handleInputStart(pos.x, pos.y);
+    }
+
+    function handleMouseMove(e) {
+        if (!isTouching) return;
+        const pos = getPos(e);
+        handleInputMove(pos.x, pos.y);
+    }
+
+    function handleMouseUp() {
+        handleInputEnd();
+    }
+
+    function handleInputStart(x, y) {
+        isTouching = true;
+        touchStartX = x;
+        touchStartY = y;
+        touchStartTime = Date.now();
+        aimX = 0;
+
+        if (gameState === STATE.MENU) {
+            if (isInButton(x, y, BASE_W / 2, BASE_H / 2, 200, 70)) {
+                playClick();
+                startLevel(1);
+            }
+        } else if (gameState === STATE.PAUSED) {
+            if (isInButton(x, y, BASE_W / 2, BASE_H / 2 - 60, 180, 55)) {
+                playClick();
+                gameState = STATE.AIMING;
+            } else if (isInButton(x, y, BASE_W / 2, BASE_H / 2 + 20, 180, 55)) {
+                playClick();
+                gameState = STATE.MENU;
+            }
+        } else if (gameState === STATE.LEVEL_COMPLETE) {
+            if (isInButton(x, y, BASE_W / 2, BASE_H / 2 + 80, 200, 60)) {
+                playClick();
+                startLevel(level + 1);
+            }
+        } else if (gameState === STATE.GAME_OVER) {
+            if (isInButton(x, y, BASE_W / 2, BASE_H / 2 + 80, 180, 55)) {
+                playClick();
+                startLevel(level);
+            } else if (isInButton(x, y, BASE_W / 2, BASE_H / 2 + 150, 180, 55)) {
+                playClick();
+                gameState = STATE.MENU;
+            }
+        } else if (gameState === STATE.AIMING) {
+            // Check pause button
+            if (x > BASE_W - 70 && y < 70) {
+                playClick();
+                gameState = STATE.PAUSED;
+            }
+        }
+    }
+
+    function handleInputMove(x, y) {
+        if (gameState === STATE.AIMING && isTouching) {
+            aimX = (x - touchStartX) * 0.5;
+        }
+    }
+
+    function handleInputEnd() {
+        if (gameState === STATE.AIMING && isTouching) {
+            const elapsed = Date.now() - touchStartTime;
+            const dy = touchStartY - (touchStartY - 100);
+
+            if (elapsed < 500 && touchStartY > BASE_H - 300) {
+                // Launch!
+                const power = Math.min(1, Math.max(0.3, elapsed / 300));
+                ball.vy = -600 * power;
+                ball.vx = aimX * 3;
+                ball.active = true;
+                gameState = STATE.ROLLING;
+                playLaunch();
+            }
+        }
+        isTouching = false;
+        aimX = 0;
+    }
+
+    function isInButton(x, y, bx, by, bw, bh) {
+        return x > bx - bw / 2 && x < bx + bw / 2 && y > by - bh / 2 && y < by + bh / 2;
+    }
+
+    // === PHYSICS ===
+    function updateBall(dt) {
+        if (!ball.active) return;
+
+        // Store trail
+        ball.trail.unshift({ x: ball.x, y: ball.y });
+        if (ball.trail.length > 15) ball.trail.pop();
+
+        // Movement
+        ball.x += ball.vx * dt;
+        ball.y += ball.vy * dt;
+
+        // Friction
+        ball.vx *= 0.995;
+        ball.vy *= 0.998;
+
+        // Wall bounce
+        if (ball.x < 50 + ball.radius) {
+            ball.x = 50 + ball.radius;
+            ball.vx = Math.abs(ball.vx) * 0.7;
+            playTone(400, 0.1, 'square', 0.2);
+        }
+        if (ball.x > BASE_W - 50 - ball.radius) {
+            ball.x = BASE_W - 50 - ball.radius;
+            ball.vx = -Math.abs(ball.vx) * 0.7;
+            playTone(400, 0.1, 'square', 0.2);
+        }
+
+        // Check if ball stopped or out of bounds
+        if (ball.y < -50 || ball.y > BASE_H + 50 || (Math.abs(ball.vy) < 5 && Math.abs(ball.vx) < 5)) {
+            ball.active = false;
+            gameState = STATE.SETTLING;
+        }
+    }
+
+    function updatePins(dt) {
+        let anyMoving = false;
+
+        for (let pin of pins) {
+            if (pin.knocked) {
+                pin.x += pin.vx * dt;
+                pin.y += pin.vy * dt;
+                pin.angle += pin.angularVel * dt;
+                pin.vx *= 0.95;
+                pin.vy *= 0.95;
+                pin.angularVel *= 0.95;
+
+                if (Math.abs(pin.vx) > 1 || Math.abs(pin.vy) > 1) anyMoving = true;
+            }
+        }
+
+        // Ball-pin collision
+        if (ball.active) {
+            for (let pin of pins) {
+                if (pin.knocked) continue;
+
+                const dx = ball.x - pin.x;
+                const dy = ball.y - pin.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < ball.radius + pin.radius) {
+                    // Collision!
+                    const nx = dx / dist;
+                    const ny = dy / dist;
+
+                    // Push ball back
+                    ball.x = pin.x + nx * (ball.radius + pin.radius);
+                    ball.y = pin.y + ny * (ball.radius + pin.radius);
+
+                    // Transfer momentum
+                    const relVx = ball.vx;
+                    const relVy = ball.vy;
+                    const impactSpeed = Math.sqrt(relVx * relVx + relVy * relVy);
+
+                    pin.knocked = true;
+                    pin.vx = nx * impactSpeed * 0.5 + ball.vx * 0.3;
+                    pin.vy = ny * impactSpeed * 0.5 + ball.vy * 0.3;
+                    pin.angularVel = (Math.random() - 0.5) * 10;
+
+                    ball.vx -= nx * impactSpeed * 0.2;
+                    ball.vy -= ny * impactSpeed * 0.2;
+
+                    pinsKnocked++;
+                    score += 10;
+
+                    spawnBurst(pin.x, pin.y, 6, COLORS.white);
+                    playPinHit();
+                    screenShake = 0.1;
+                }
+            }
+        }
+
+        // Pin-pin collision
+        for (let i = 0; i < pins.length; i++) {
+            for (let j = i + 1; j < pins.length; j++) {
+                const p1 = pins[i], p2 = pins[j];
+                if (!p1.knocked && !p2.knocked) continue;
+
+                const dx = p2.x - p1.x;
+                const dy = p2.y - p1.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < p1.radius + p2.radius && dist > 0) {
+                    const nx = dx / dist;
+                    const ny = dy / dist;
+
+                    if (!p1.knocked) {
+                        p1.knocked = true;
+                        p1.vx = -nx * 50;
+                        p1.vy = -ny * 50;
+                        p1.angularVel = (Math.random() - 0.5) * 5;
+                        pinsKnocked++;
+                        score += 10;
+                        playPinHit();
+                    }
+                    if (!p2.knocked) {
+                        p2.knocked = true;
+                        p2.vx = nx * 50;
+                        p2.vy = ny * 50;
+                        p2.angularVel = (Math.random() - 0.5) * 5;
+                        pinsKnocked++;
+                        score += 10;
+                        playPinHit();
+                    }
+
+                    // Separate
+                    const overlap = (p1.radius + p2.radius - dist) / 2;
+                    p1.x -= nx * overlap;
+                    p1.y -= ny * overlap;
+                    p2.x += nx * overlap;
+                    p2.y += ny * overlap;
+                }
+            }
+        }
+
+        return anyMoving;
+    }
+
+    function checkShotResult() {
+        const standingPins = pins.filter(p => !p.knocked).length;
+
+        if (standingPins === 0) {
+            if (shotNumber === 1) {
+                resultText = 'STRIKE!';
+                flashAlpha = 0.5;
+                screenShake = 0.3;
+                spawnBurst(BASE_W / 2, PIN_START_Y + 60, 30, COLORS.yellow);
+                playStrike();
+                score += 50;
+            } else {
+                resultText = 'SPARE!';
+                flashAlpha = 0.3;
+                spawnBurst(BASE_W / 2, PIN_START_Y + 60, 20, COLORS.accent);
+                playSpare();
+                score += 25;
+            }
+            resultTimer = 1.5;
+            gameState = STATE.RESULT;
+            shotNumber = 1;
+            frame++;
+        } else if (shotNumber === 1) {
+            shotNumber = 2;
+            resetBall();
+            gameState = STATE.AIMING;
+        } else {
+            shotNumber = 1;
+            frame++;
+            resultTimer = 0.5;
+            gameState = STATE.RESULT;
+        }
+    }
+
+    function checkGameState() {
+        if (pinsKnocked >= targetPins) {
+            gameState = STATE.LEVEL_COMPLETE;
+            playStrike();
+            flashAlpha = 0.4;
+        } else if (frame > maxFrames) {
+            gameState = STATE.GAME_OVER;
+            playFail();
+        } else {
+            resetForShot();
+            gameState = STATE.AIMING;
+        }
+    }
+
+    // === UPDATE ===
+    let lastTime = 0;
+    let settleTimer = 0;
+
+    function update(time) {
+        const dt = Math.min(0.05, (time - lastTime) / 1000);
+        lastTime = time;
+
+        // Update screen effects
+        if (screenShake > 0) screenShake -= dt * 2;
+        if (flashAlpha > 0) flashAlpha -= dt;
+        if (resultTimer > 0) resultTimer -= dt;
+
+        updateParticles(dt);
+
+        if (gameState === STATE.ROLLING) {
+            updateBall(dt);
+            updatePins(dt);
+        } else if (gameState === STATE.SETTLING) {
+            const moving = updatePins(dt);
+            settleTimer += dt;
+            if (!moving || settleTimer > 2) {
+                settleTimer = 0;
+                checkShotResult();
+            }
+        } else if (gameState === STATE.RESULT) {
+            if (resultTimer <= 0) {
+                checkGameState();
+            }
+        }
+
+        requestAnimationFrame(update);
+        draw();
+    }
+
+    // === DRAWING ===
+    function draw() {
+        // Clear
+        ctx.fillStyle = COLORS.bg;
+        ctx.fillRect(0, 0, W, H);
+
+        // Screen shake
+        ctx.save();
+        if (screenShake > 0) {
+            ctx.translate(
+                (Math.random() - 0.5) * screenShake * 20 * scale,
+                (Math.random() - 0.5) * screenShake * 20 * scale
+            );
+        }
+
+        if (gameState === STATE.MENU) {
+            drawMenu();
+        } else if (gameState === STATE.PAUSED) {
+            drawGame();
+            drawPauseMenu();
+        } else if (gameState === STATE.LEVEL_COMPLETE) {
+            drawGame();
+            drawLevelComplete();
+        } else if (gameState === STATE.GAME_OVER) {
+            drawGame();
+            drawGameOver();
+        } else {
+            drawGame();
+        }
+
+        ctx.restore();
+
+        // Flash effect
+        if (flashAlpha > 0) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
+            ctx.fillRect(0, 0, W, H);
+        }
+
+        // Result text
+        if (resultText && resultTimer > 0) {
+            ctx.save();
+            ctx.globalAlpha = Math.min(1, resultTimer * 2);
+            const s = 1 + (1 - resultTimer / 1.5) * 0.3;
+            ctx.translate(W / 2, H * 0.35);
+            ctx.scale(s, s);
+            ctx.font = `bold ${60 * scale}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.fillStyle = resultText === 'STRIKE!' ? COLORS.yellow : COLORS.accent;
+            ctx.shadowColor = ctx.fillStyle;
+            ctx.shadowBlur = 20 * scale;
+            ctx.fillText(resultText, 0, 0);
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+    }
+
+    function drawMenu() {
+        // Title
+        ctx.font = `bold ${64 * scale}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = COLORS.primary1;
+        ctx.shadowColor = COLORS.primary1;
+        ctx.shadowBlur = 30 * scale;
+        ctx.fillText('NEON', BASE_W / 2 * scale, 280 * scale);
+        ctx.fillStyle = COLORS.accent;
+        ctx.shadowColor = COLORS.accent;
+        ctx.fillText('LANE', BASE_W / 2 * scale, 360 * scale);
+        ctx.shadowBlur = 0;
+
+        // Play button
+        drawButton(BASE_W / 2, BASE_H / 2, 200, 70, 'PLAY', COLORS.primary2);
+
+        // Instructions
+        ctx.font = `${18 * scale}px Arial`;
+        ctx.fillStyle = COLORS.textSecondary;
+        ctx.fillText('Swipe up to launch', BASE_W / 2 * scale, (BASE_H / 2 + 120) * scale);
+        ctx.fillText('Knock down all the pins!', BASE_W / 2 * scale, (BASE_H / 2 + 150) * scale);
+    }
+
+    function drawGame() {
+        // Lane background
+        const gradient = ctx.createLinearGradient(0, 0, 0, H);
+        gradient.addColorStop(0, COLORS.bg);
+        gradient.addColorStop(1, COLORS.bgLight);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, W, H);
+
+        // Lane edges (neon glow)
+        ctx.strokeStyle = COLORS.primary1;
+        ctx.lineWidth = 3 * scale;
+        ctx.shadowColor = COLORS.primary1;
+        ctx.shadowBlur = 15 * scale;
+        ctx.beginPath();
+        ctx.moveTo(50 * scale, 0);
+        ctx.lineTo(50 * scale, H);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo((BASE_W - 50) * scale, 0);
+        ctx.lineTo((BASE_W - 50) * scale, H);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Grid lines
+        ctx.strokeStyle = `rgba(156, 39, 176, 0.2)`;
+        ctx.lineWidth = 1 * scale;
+        for (let y = 0; y < BASE_H; y += 60) {
+            ctx.beginPath();
+            ctx.moveTo(50 * scale, y * scale);
+            ctx.lineTo((BASE_W - 50) * scale, y * scale);
+            ctx.stroke();
+        }
+
+        // Draw pins
+        for (let pin of pins) {
+            if (pin.y > -50 && pin.y < BASE_H + 50) {
+                drawPin(pin);
+            }
+        }
+
+        // Draw ball trail
+        if (ball.trail.length > 0) {
+            for (let i = 0; i < ball.trail.length; i++) {
+                const t = ball.trail[i];
+                const alpha = (1 - i / ball.trail.length) * 0.5;
+                const r = ball.radius * (1 - i / ball.trail.length);
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = COLORS.primary2;
+                ctx.beginPath();
+                ctx.arc(t.x * scale, t.y * scale, r * scale, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        // Draw ball
+        if (ball.y > -50 && ball.y < BASE_H + 50) {
+            drawBall();
+        }
+
+        // Draw aim line
+        if (gameState === STATE.AIMING && isTouching) {
+            ctx.strokeStyle = COLORS.accent;
+            ctx.lineWidth = 2 * scale;
+            ctx.setLineDash([10 * scale, 10 * scale]);
+            ctx.globalAlpha = 0.6;
+            ctx.beginPath();
+            ctx.moveTo(ball.x * scale, ball.y * scale);
+            ctx.lineTo((ball.x + aimX * 3) * scale, (ball.y - 300) * scale);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.globalAlpha = 1;
+        }
+
+        // Draw particles
+        drawParticles();
+
+        // HUD
+        drawHUD();
+    }
+
+    function drawBall() {
+        ctx.save();
+        ctx.translate(ball.x * scale, ball.y * scale);
+
+        // Glow
+        ctx.shadowColor = COLORS.primary2;
+        ctx.shadowBlur = 20 * scale;
+
+        // Main ball
+        const gradient = ctx.createRadialGradient(
+            -5 * scale, -5 * scale, 0,
+            0, 0, ball.radius * scale
+        );
+        gradient.addColorStop(0, COLORS.accent);
+        gradient.addColorStop(0.5, COLORS.primary2);
+        gradient.addColorStop(1, '#1565C0');
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, ball.radius * scale, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+
+    function drawPin(pin) {
+        ctx.save();
+        ctx.translate(pin.x * scale, pin.y * scale);
+        ctx.rotate(pin.angle);
+
+        const alpha = pin.knocked ? 0.5 : 1;
+        ctx.globalAlpha = alpha;
+
+        // Pin body (trapezoid shape)
+        const w = pin.radius * 2;
+        const h = pin.height;
+
+        // Glow
+        if (!pin.knocked) {
+            ctx.shadowColor = COLORS.accent;
+            ctx.shadowBlur = 10 * scale;
+        }
+
+        // Main body
+        ctx.fillStyle = COLORS.white;
+        ctx.beginPath();
+        ctx.moveTo(-w / 2 * scale, h / 2 * scale);
+        ctx.lineTo(-w / 3 * scale, -h / 2 * scale);
+        ctx.lineTo(w / 3 * scale, -h / 2 * scale);
+        ctx.lineTo(w / 2 * scale, h / 2 * scale);
+        ctx.closePath();
+        ctx.fill();
+
+        // Neon band
+        ctx.fillStyle = COLORS.primary1;
+        ctx.beginPath();
+        ctx.arc(0, -h / 3 * scale, w / 3 * scale, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+        ctx.restore();
+    }
+
+    function drawHUD() {
+        // Score
+        ctx.font = `bold ${40 * scale}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = COLORS.yellow;
+        ctx.shadowColor = COLORS.yellow;
+        ctx.shadowBlur = 10 * scale;
+        ctx.fillText(score.toString(), BASE_W / 2 * scale, 60 * scale);
+        ctx.shadowBlur = 0;
+
+        // Level & Frame
+        ctx.font = `${20 * scale}px Arial`;
+        ctx.textAlign = 'left';
+        ctx.fillStyle = COLORS.textSecondary;
+        ctx.fillText(`Level ${level}`, 60 * scale, 50 * scale);
+        ctx.fillText(`Frame ${frame}/${maxFrames}`, 60 * scale, 80 * scale);
+
+        // Pin goal
+        ctx.textAlign = 'right';
+        ctx.fillStyle = pinsKnocked >= targetPins ? COLORS.success : COLORS.textSecondary;
+        ctx.fillText(`Pins: ${pinsKnocked}/${targetPins}`, (BASE_W - 60) * scale, 80 * scale);
+
+        // Progress bar
+        const barWidth = 200;
+        const barHeight = 8;
+        const barX = (BASE_W - barWidth) / 2;
+        const barY = 95;
+        const progress = Math.min(1, pinsKnocked / targetPins);
+
+        ctx.fillStyle = COLORS.bgLight;
+        ctx.beginPath();
+        ctx.roundRect(barX * scale, barY * scale, barWidth * scale, barHeight * scale, 4 * scale);
+        ctx.fill();
+
+        const grad = ctx.createLinearGradient(barX * scale, 0, (barX + barWidth) * scale, 0);
+        grad.addColorStop(0, COLORS.primary2);
+        grad.addColorStop(1, COLORS.accent);
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.roundRect(barX * scale, barY * scale, barWidth * progress * scale, barHeight * scale, 4 * scale);
+        ctx.fill();
+
+        // Pause button
+        ctx.fillStyle = COLORS.textSecondary;
+        ctx.fillRect((BASE_W - 55) * scale, 30 * scale, 8 * scale, 30 * scale);
+        ctx.fillRect((BASE_W - 40) * scale, 30 * scale, 8 * scale, 30 * scale);
+    }
+
+    function drawButton(x, y, w, h, text, color) {
+        // Button background
+        const gradient = ctx.createLinearGradient(0, (y - h / 2) * scale, 0, (y + h / 2) * scale);
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(1, shadeColor(color, -20));
+
+        ctx.fillStyle = gradient;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 15 * scale;
+        ctx.beginPath();
+        ctx.roundRect((x - w / 2) * scale, (y - h / 2) * scale, w * scale, h * scale, 12 * scale);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Text
+        ctx.font = `bold ${24 * scale}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = COLORS.white;
+        ctx.fillText(text, x * scale, (y + 8) * scale);
+    }
+
+    function drawPauseMenu() {
+        // Overlay
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.font = `bold ${48 * scale}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = COLORS.white;
+        ctx.fillText('PAUSED', BASE_W / 2 * scale, (BASE_H / 2 - 120) * scale);
+
+        drawButton(BASE_W / 2, BASE_H / 2 - 60, 180, 55, 'RESUME', COLORS.success);
+        drawButton(BASE_W / 2, BASE_H / 2 + 20, 180, 55, 'MENU', COLORS.primary1);
+    }
+
+    function drawLevelComplete() {
+        // Overlay
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.font = `bold ${48 * scale}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = COLORS.success;
+        ctx.shadowColor = COLORS.success;
+        ctx.shadowBlur = 20 * scale;
+        ctx.fillText('LEVEL COMPLETE!', BASE_W / 2 * scale, (BASE_H / 2 - 100) * scale);
+        ctx.shadowBlur = 0;
+
+        ctx.font = `${28 * scale}px Arial`;
+        ctx.fillStyle = COLORS.yellow;
+        ctx.fillText(`Score: ${score}`, BASE_W / 2 * scale, (BASE_H / 2 - 30) * scale);
+
+        ctx.fillStyle = COLORS.textSecondary;
+        ctx.fillText(`Pins: ${pinsKnocked}`, BASE_W / 2 * scale, (BASE_H / 2 + 10) * scale);
+
+        drawButton(BASE_W / 2, BASE_H / 2 + 80, 200, 60, 'NEXT LEVEL', COLORS.primary2);
+    }
+
+    function drawGameOver() {
+        // Overlay
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.font = `bold ${48 * scale}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = COLORS.red;
+        ctx.shadowColor = COLORS.red;
+        ctx.shadowBlur = 20 * scale;
+        ctx.fillText('GAME OVER', BASE_W / 2 * scale, (BASE_H / 2 - 100) * scale);
+        ctx.shadowBlur = 0;
+
+        ctx.font = `${28 * scale}px Arial`;
+        ctx.fillStyle = COLORS.yellow;
+        ctx.fillText(`Score: ${score}`, BASE_W / 2 * scale, (BASE_H / 2 - 30) * scale);
+
+        ctx.fillStyle = COLORS.textSecondary;
+        ctx.fillText(`Pins: ${pinsKnocked}/${targetPins}`, BASE_W / 2 * scale, (BASE_H / 2 + 10) * scale);
+
+        drawButton(BASE_W / 2, BASE_H / 2 + 80, 180, 55, 'RETRY', COLORS.red);
+        drawButton(BASE_W / 2, BASE_H / 2 + 150, 180, 55, 'MENU', COLORS.primary1);
+    }
+
+    function shadeColor(color, percent) {
+        const num = parseInt(color.replace('#', ''), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+        const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amt));
+        const B = Math.max(0, Math.min(255, (num & 0x0000FF) + amt));
+        return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+    }
+
+    // === START ===
+    requestAnimationFrame(update);
+})();
+</script>
+</body>
+</html>
