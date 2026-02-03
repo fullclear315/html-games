@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Bowlin' Go FRVR</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { 
+    width: 100%; height: 100%; 
+    overflow: hidden; 
+    background: #000;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+#gameCanvas {
+    display: block;
+    margin: 0 auto;
+    touch-action: none;
+}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+(function() {
+'use strict';
+
+// Helper functions
+function hexToRgb(hex) {
+    let r = 0, g = 0, b = 0;
+    if (hex.length === 4) {
+        r = parseInt(hex[1] + hex[1], 16);
+        g = parseInt(hex[2] + hex[2], 16);
+        b = parseInt(hex[3] + hex[3], 16);
+    } else if (hex.length === 7) {
+        r = parseInt(hex.substring(1, 3), 16);
+        g = parseInt(hex.substring(3, 5), 16);
+        b = parseInt(hex.substring(5, 7), 16);
+    }
+    return [r, g, b];
+}
+
+function rgbToHex(r, g, b) {
+    return '#' + ((1 << 24) + (Math.round(r) << 16) + (Math.round(g) << 8) + Math.round(b)).toString(16).slice(1);
+}
+
+function lightenColor(hex, percent) {
+    let [r, g, b] = hexToRgb(hex);
+    r = Math.min(255, r + (r * percent / 100));
+    g = Math.min(255, g + (g * percent / 100));
+    b = Math.min(255, b + (b * percent / 100));
+    return rgbToHex(r, g, b);
+}
+
+function darkenColor(hex, percent) {
+    let [r, g, b] = hexToRgb(hex);
+    r = Math.max(0, r - (r * percent / 100));
+    g = Math.max(0, g - (g * percent / 100));
+    b = Math.max(0, b - (b * percent / 100));
+    return rgbToHex(r, g, b);
+}
+
+function drawRoundedRect(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+}
+
+// Canvas setup
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const BASE_WIDTH = 540;
+const BASE_HEIGHT = 960;
+let scale = 1;
+let offsetX = 0, offsetY = 0;
+
+function resizeCanvas() {
+    const windowRatio = window.innerWidth / window.innerHeight;
+    const gameRatio = BASE_WIDTH / BASE_HEIGHT;
+    
+    if (windowRatio < gameRatio) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerWidth / gameRatio;
+    } else {
+        canvas.height = window.innerHeight;
+        canvas.width = window.innerHeight * gameRatio;
+    }
+    
+    scale = canvas.width / BASE_WIDTH;
+    offsetX = (window.innerWidth - canvas.width) / 2;
+    offsetY = (window.innerHeight - canvas.height) / 2;
+    canvas.style.marginLeft = offsetX + 'px';
+    canvas.style.marginTop = offsetY + 'px';
+}
+
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// Colors
+const COLORS = {
+    deepViolet: '#8A2BE2',
+    steelBlue: '#4682B4',
+    arcadeRed: '#CE275C',
+    pinCream: '#FFF8DC',
+    darkGrey: '#4A4A4A',
+    gameGold: '#FFD700',
+    actionOrange: '#FF6F00',
+    white: '#FFFFFF',
+    lightMauve: '#E0BBE4',
+    mutedLilac: '#957DAD'
+};
+
+// Audio Manager
+const AudioManager = {
+    ctx: null,
+    masterGain: null,
+    sfxGain: null,
+    musicGain: null,
+    whiteNoiseBuffer: null,
+    soundEnabled: true,
+    musicEnabled: true,
+    
+    init() {
+        if (this.ctx) return;
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.connect(this.ctx.destination);
+        this.masterGain.gain.value = 0.7;
+        
+        this.sfxGain = this.ctx.createGain();
+        this.sfxGain.connect(this.masterGain);
+        this.sfxGain.gain.value = 0.7;
+        
+        this.musicGain = this.ctx.createGain();
+        this.musicGain.connect(this.masterGain);
+        this.musicGain.gain.value = 0.3;
+        
+        this.createWhiteNoiseBuffer();
+    },
+    
+    resume() {
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    },
+    
+    createWhiteNoiseBuffer() {
+        const bufferSize = this.ctx.sampleRate * 0.5;
+        this.whiteNoiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = this.whiteNoiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+    },
+    
+    playTap() {
+        if (!this.soundEnabled || !this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.type = 'sine';
+        osc.frequency.value = 1500;
+        gain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.5, this.ctx.currentTime + 0.005);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+        osc.start(this.ctx.currentTime);
+        osc.stop(this.ctx.currentTime + 0.06);
+    },
+    
+    playLaunch() {
+        if (!this.soundEnabled || !this.ctx) return;
+        const noiseSource = this.ctx.createBufferSource();
+        noiseSource.buffer = this.whiteNoiseBuffer;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        const noiseGain = this.ctx.createGain();
+        noiseSource.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(this.sfxGain);
+        filter.frequency.setValueAtTime(200, this.ctx.currentTime);
+        filter.frequency.linearRampToValueAtTime(1500, this.ctx.currentTime + 0.1);
+        filter.frequency.linearRampToValueAtTime(200, this.ctx.currentTime + 0.3);
+        noiseGain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+        noiseGain.gain.linearRampToValueAtTime(0.7, this.ctx.currentTime + 0.01);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.35);
+        noiseSource.start(this.ctx.currentTime);
+        noiseSource.stop(this.ctx.currentTime + 0.4);
+    },
+    
+    playPinHit() {
+        if (!this.soundEnabled || !this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.type = 'sawtooth';
+        osc.frequency.value = 250 + Math.random() * 100;
+        gain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.6, this.ctx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+        osc.start(this.ctx.currentTime);
+        osc.stop(this.ctx.currentTime + 0.1);
+    },
+    
+    playCoin() {
+        if (!this.soundEnabled || !this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(2400, this.ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(2600, this.ctx.currentTime + 0.02);
+        gain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.7, this.ctx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
+        osc.start(this.ctx.currentTime);
+        osc.stop(this.ctx.currentTime + 0.15);
+    },
+    
+    playStrike() {
+        if (!this.soundEnabled || !this.ctx) return;
+        const notes = [261.63, 329.63, 392.00, 523.25];
+        notes.forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.connect(gain);
+            gain.connect(this.sfxGain);
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            const delay = i * 0.08;
+            gain.gain.setValueAtTime(0.001, this.ctx.currentTime + delay);
+            gain.gain.linearRampToValueAtTime(0.5, this.ctx.currentTime + delay + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + delay + 0.4);
+            osc.start(this.ctx.currentTime + delay);
+            osc.stop(this.ctx.currentTime + delay + 0.45);
+        });
+    },
+    
+    playSpare() {
+        if (!this.soundEnabled || !this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(1500, this.ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.6, this.ctx.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+        osc.start(this.ctx.currentTime);
+        osc.stop(this.ctx.currentTime + 0.35);
+    },
+    
+    playGameOver() {
+        if (!this.soundEnabled || !this.ctx) return;
+        const notes = [392.00, 329.63, 261.63];
+        notes.forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.connect(gain);
+            gain.connect(this.sfxGain);
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            const delay = i * 0.15;
+            gain.gain.setValueAtTime(0.001, this.ctx.currentTime + delay);
+            gain.gain.linearRampToValueAtTime(0.4, this.ctx.currentTime + delay + 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + delay + 0.5);
+            osc.start(this.ctx.currentTime + delay);
+            osc.stop(this.ctx.currentTime + delay + 0.55);
+        });
+    }
+};
+
+// Game State
+const GameState = {
+    AIMING: 'AIMING',
+    ROLLING: 'ROLLING',
+    PIN_FALL: 'PIN_FALL',
+    SCORE_DISPLAY: 'SCORE_DISPLAY',
+    GAME_OVER: 'GAME_OVER',
+    SHOP: 'SHOP'
+};
+
+// Ball designs
+const BALL_DESIGNS = [
+    { name: 'Classic Red', color: '#CE275C', pattern: 'solid', cost: 0, owned: true },
+    { name: 'Ocean Blue', color: '#4682B4', pattern: 'solid', cost: 50, owned: false },
+    { name: 'Purple Haze', color: '#8A2BE2', pattern: 'solid', cost: 75, owned: false },
+    { name: 'Sunset Orange', color: '#FF6F00', pattern: 'stars', cost: 100, owned: false },
+    { name: 'Pink Dream', color: '#FFC0CB', pattern: 'dots', cost: 150, owned: false },
+    { name: 'Aqua Wave', color: '#66CCCC', pattern: 'waves', cost: 200, owned: false }
+];
+
+// Game variables
+let state = GameState.AIMING;
+let score = 0;
+let highScore = parseInt(localStorage.getItem('bowlingoHighScore') || '0');
+let coins = parseInt(localStorage.getItem('bowlingoCoins') || '0');
+let totalPinsKnocked = parseInt(localStorage.getItem('bowlingoPinsKnocked') || '0');
+let currentBallIndex = 0;
+let frameScores = [];
+let currentFrame = 0;
+let throwInFrame = 0;
+let pinsKnockedThisFrame = 0;
+
+// Ball
+let ball = {
+    x: BASE_WIDTH / 2,
+    y: BASE_HEIGHT - 120,
+    radius: 45,
+    vx: 0,
+    vy: 0,
+    spin: 0,
+    rolling: false
+};
+
+// Pins
+const PIN_POSITIONS = [
+    {row: 0, col: 0},
+    {row: 1, col: -0.5}, {row: 1, col: 0.5},
+    {row: 2, col: -1}, {row: 2, col: 0}, {row: 2, col: 1},
+    {row: 3, col: -1.5}, {row: 3, col: -0.5}, {row: 3, col: 0.5}, {row: 3, col: 1.5}
+];
+
+let pins = [];
+
+function createPins() {
+    pins = [];
+    const baseY = 200;
+    const rowSpacing = 35;
+    const colSpacing = 30;
+    
+    PIN_POSITIONS.forEach((pos, i) => {
+        const perspectiveFactor = 0.4 + (pos.row * 0.15);
+        pins.push({
+            id: i,
+            x: BASE_WIDTH / 2 + pos.col * colSpacing * perspectiveFactor,
+            y: baseY + pos.row * rowSpacing,
+            vx: 0,
+            vy: 0,
+            rotation: 0,
+            angularVelocity: 0,
+            state: 'STANDING',
+            scale: 0.5 + pos.row * 0.1,
+            fallTimer: 0
+        });
+    });
+}
+
+// Particles
+let particles = [];
+const MAX_PARTICLES = 100;
+
+function spawnParticles(x, y, count, colors) {
+    for (let i = 0; i < count && particles.length < MAX_PARTICLES; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 50 + Math.random() * 100;
+        particles.push({
+            x, y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: 4 + Math.random() * 8,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            life: 1,
+            maxLife: 0.3 + Math.random() * 0.3
+        });
+    }
+}
+
+// Coins
+let flyingCoins = [];
+
+function spawnCoin(x, y) {
+    flyingCoins.push({
+        x, y,
+        targetX: BASE_WIDTH - 60,
+        targetY: 30,
+        progress: 0,
+        startX: x,
+        startY: y
+    });
+}
+
+// Swipe handling
+let swipeStart = null;
+let swipeEnd = null;
+let isSwiping = false;
+
+function getTouchPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches ? e.touches[0] : e;
+    return {
+        x: (touch.clientX - rect.left) / scale,
+        y: (touch.clientY - rect.top) / scale
+    };
+}
+
+canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+canvas.addEventListener('mousedown', handleTouchStart);
+canvas.addEventListener('mousemove', handleTouchMove);
+canvas.addEventListener('mouseup', handleTouchEnd);
+
+function handleTouchStart(e) {
+    e.preventDefault();
+    AudioManager.init();
+    AudioManager.resume();
+    
+    const pos = getTouchPos(e);
+    
+    if (state === GameState.GAME_OVER) {
+        if (isInsideButton(pos, playAgainBtn)) {
+            AudioManager.playTap();
+            startNewGame();
+            return;
+        }
+        if (isInsideButton(pos, shopBtn)) {
+            AudioManager.playTap();
+            state = GameState.SHOP;
+            return;
+        }
+    }
+    
+    if (state === GameState.SHOP) {
+        if (pos.x < 80 && pos.y < 80) {
+            AudioManager.playTap();
+            state = GameState.GAME_OVER;
+            return;
+        }
+        if (pos.x < BASE_WIDTH / 2 - 50) {
+            AudioManager.playTap();
+            currentBallIndex = (currentBallIndex - 1 + BALL_DESIGNS.length) % BALL_DESIGNS.length;
+            return;
+        }
+        if (pos.x > BASE_WIDTH / 2 + 50) {
+            AudioManager.playTap();
+            currentBallIndex = (currentBallIndex + 1) % BALL_DESIGNS.length;
+            return;
+        }
+        const design = BALL_DESIGNS[currentBallIndex];
+        if (!design.owned && coins >= design.cost) {
+            if (pos.y > BASE_HEIGHT / 2 + 100 && pos.y < BASE_HEIGHT / 2 + 160) {
+                AudioManager.playTap();
+                AudioManager.playCoin();
+                coins -= design.cost;
+                design.owned = true;
+                localStorage.setItem('bowlingoCoins', coins);
+            }
+        }
+        return;
+    }
+    
+    if (state === GameState.AIMING) {
+        const dist = Math.hypot(pos.x - ball.x, pos.y - ball.y);
+        if (dist < ball.radius * 2.5) {
+            swipeStart = pos;
+            isSwiping = true;
+        }
+    }
+}
+
+function handleTouchMove(e) {
+    e.preventDefault();
+    if (isSwiping) {
+        swipeEnd = getTouchPos(e);
+    }
+}
+
+function handleTouchEnd(e) {
+    e.preventDefault();
+    if (isSwiping && swipeStart && swipeEnd) {
+        const dx = swipeEnd.x - swipeStart.x;
+        const dy = swipeEnd.y - swipeStart.y;
+        
+        if (dy < -30) {
+            const power = Math.min(Math.abs(dy) / 200, 1);
+            ball.vy = -400 * power - 200;
+            ball.vx = dx * 1.5;
+            ball.spin = dx * 0.01;
+            ball.rolling = true;
+            state = GameState.ROLLING;
+            AudioManager.playLaunch();
+        }
+    }
+    swipeStart = null;
+    swipeEnd = null;
+    isSwiping = false;
+}
+
+function isInsideButton(pos, btn) {
+    return pos.x >= btn.x && pos.x <= btn.x + btn.w &&
+           pos.y >= btn.y && pos.y <= btn.y + btn.h;
+}
+
+const playAgainBtn = { x: BASE_WIDTH / 2 - 100, y: BASE_HEIGHT / 2 + 120, w: 200, h: 60 };
+const shopBtn = { x: BASE_WIDTH / 2 - 100, y: BASE_HEIGHT / 2 + 200, w: 200, h: 50 };
+
+// Physics
+function updateBall(dt) {
+    if (!ball.rolling) return;
+    
+    ball.x += ball.vx * dt;
+    ball.y += ball.vy * dt;
+    ball.vx += ball.spin * 100 * dt;
+    ball.vx *= 0.995;
+    ball.vy *= 0.998;
+    
+    // Lane boundaries
+    const laneLeft = BASE_WIDTH * 0.15;
+    const laneRight = BASE_WIDTH * 0.85;
+    
+    if (ball.x < laneLeft || ball.x > laneRight) {
+        ball.rolling = false;
+        setTimeout(() => checkFrameEnd(), 500);
+        return;
+    }
+    
+    if (ball.y < 50) {
+        ball.rolling = false;
+        state = GameState.PIN_FALL;
+    }
+}
+
+function updatePins(dt) {
+    let anyMoving = false;
+    
+    pins.forEach(pin => {
+        if (pin.state === 'FALLEN') return;
+        
+        if (pin.state === 'STANDING' && ball.rolling) {
+            const dist = Math.hypot(ball.x - pin.x, ball.y - pin.y);
+            if (dist < ball.radius + 12 * pin.scale) {
+                const angle = Math.atan2(pin.y - ball.y, pin.x - ball.x);
+                const force = 150 + Math.abs(ball.vy) * 0.3;
+                pin.vx = Math.cos(angle) * force;
+                pin.vy = Math.sin(angle) * force;
+                pin.angularVelocity = (Math.random() - 0.5) * 10;
+                pin.state = 'FALLING';
+                AudioManager.playPinHit();
+                spawnParticles(pin.x, pin.y, 5, [COLORS.white, COLORS.lightMauve, COLORS.arcadeRed]);
+                
+                if (Math.random() < 0.3) {
+                    spawnCoin(pin.x, pin.y);
+                    coins++;
+                    localStorage.setItem('bowlingoCoins', coins);
+                }
+            }
+        }
+        
+        if (pin.state === 'FALLING') {
+            pin.x += pin.vx * dt;
+            pin.y += pin.vy * dt;
+            pin.rotation += pin.angularVelocity * dt;
+            pin.vx *= 0.95;
+            pin.vy *= 0.95;
+            pin.angularVelocity *= 0.95;
+            pin.fallTimer += dt;
+            
+            anyMoving = true;
+            
+            // Pin-pin collision
+            pins.forEach(other => {
+                if (other.id === pin.id || other.state === 'FALLEN') return;
+                const dist = Math.hypot(pin.x - other.x, pin.y - other.y);
+                if (dist < 25 * pin.scale && other.state === 'STANDING') {
+                    const angle = Math.atan2(other.y - pin.y, other.x - pin.x);
+                    other.vx = Math.cos(angle) * 80;
+                    other.vy = Math.sin(angle) * 80;
+                    other.angularVelocity = (Math.random() - 0.5) * 8;
+                    other.state = 'FALLING';
+                    AudioManager.playPinHit();
+                }
+            });
+            
+            if (pin.fallTimer > 1.5 || Math.abs(pin.vx) + Math.abs(pin.vy) < 5) {
+                pin.state = 'FALLEN';
+            }
+        }
+    });
+    
+    if (state === GameState.PIN_FALL && !anyMoving && !ball.rolling) {
+        setTimeout(() => checkFrameEnd(), 300);
+        state = GameState.SCORE_DISPLAY;
+    }
+}
+
+function checkFrameEnd() {
+    const knockedThisThrow = pins.filter(p => p.state === 'FALLEN').length - pinsKnockedThisFrame;
+    pinsKnockedThisFrame = pins.filter(p => p.state === 'FALLEN').length;
+    
+    totalPinsKnocked += knockedThisThrow;
+    localStorage.setItem('bowlingoPinsKnocked', totalPinsKnocked);
+    
+    score += knockedThisThrow * 10;
+    
+    const allDown = pins.every(p => p.state === 'FALLEN');
+    
+    if (throwInFrame === 0 && allDown) {
+        // Strike
+        frameScores.push('X');
+        score += 30;
+        AudioManager.playStrike();
+        showFeedback = { text: 'STRIKE!', timer: 1.5, scale: 0 };
+        currentFrame++;
+        throwInFrame = 0;
+        pinsKnockedThisFrame = 0;
+        
+        if (currentFrame >= 10) {
+            endGame();
+        } else {
+            setTimeout(() => {
+                createPins();
+                resetBall();
+                state = GameState.AIMING;
+            }, 1500);
+        }
+    } else if (throwInFrame === 1 && allDown) {
+        // Spare
+        frameScores.push('/');
+        score += 15;
+        AudioManager.playSpare();
+        showFeedback = { text: 'SPARE!', timer: 1.2, scale: 0 };
+        currentFrame++;
+        throwInFrame = 0;
+        pinsKnockedThisFrame = 0;
+        
+        if (currentFrame >= 10) {
+            endGame();
+        } else {
+            setTimeout(() => {
+                createPins();
+                resetBall();
+                state = GameState.AIMING;
+            }, 1200);
+        }
+    } else if (throwInFrame === 1) {
+        // Frame complete
+        frameScores.push(pinsKnockedThisFrame);
+        currentFrame++;
+        throwInFrame = 0;
+        pinsKnockedThisFrame = 0;
+        
+        if (currentFrame >= 10) {
+            endGame();
+        } else {
+            setTimeout(() => {
+                createPins();
+                resetBall();
+                state = GameState.AIMING;
+            }, 800);
+        }
+    } else {
+        // Second throw
+        throwInFrame = 1;
+        setTimeout(() => {
+            resetBall();
+            state = GameState.AIMING;
+        }, 500);
+    }
+}
+
+function resetBall() {
+    ball.x = BASE_WIDTH / 2;
+    ball.y = BASE_HEIGHT - 120;
+    ball.vx = 0;
+    ball.vy = 0;
+    ball.spin = 0;
+    ball.rolling = false;
+}
+
+function endGame() {
+    state = GameState.GAME_OVER;
+    AudioManager.playGameOver();
+    
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('bowlingoHighScore', highScore);
+        showFeedback = { text: 'NEW HIGH SCORE!', timer: 2, scale: 0 };
+    }
+}
+
+function startNewGame() {
+    score = 0;
+    currentFrame = 0;
+    throwInFrame = 0;
+    pinsKnockedThisFrame = 0;
+    frameScores = [];
+    createPins();
+    resetBall();
+    particles = [];
+    flyingCoins = [];
+    state = GameState.AIMING;
+}
+
+// Feedback
+let showFeedback = null;
+
+// Update
+function updateParticles(dt) {
+    particles = particles.filter(p => {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.life -= dt / p.maxLife;
+        p.size *= 0.98;
+        return p.life > 0;
+    });
+}
+
+function updateCoins(dt) {
+    flyingCoins = flyingCoins.filter(c => {
+        c.progress += dt * 2;
+        const t = Math.min(c.progress, 1);
+        const easeT = 1 - Math.pow(1 - t, 3);
+        c.x = c.startX + (c.targetX - c.startX) * easeT;
+        c.y = c.startY + (c.targetY - c.startY) * easeT - Math.sin(t * Math.PI) * 100;
+        
+        if (t >= 1) {
+            AudioManager.playCoin();
+            return false;
+        }
+        return true;
+    });
+}
+
+function update(dt) {
+    if (state === GameState.ROLLING || state === GameState.PIN_FALL) {
+        updateBall(dt);
+        updatePins(dt);
+    }
+    
+    updateParticles(dt);
+    updateCoins(dt);
+    
+    if (showFeedback) {
+        showFeedback.timer -= dt;
+        showFeedback.scale = Math.min(showFeedback.scale + dt * 5, 1);
+        if (showFeedback.timer <= 0) showFeedback = null;
+    }
+}
+
+// Drawing functions
+function drawLaneSurface(ctx, canvasWidth, canvasHeight) {
+    ctx.save();
+    
+    const laneWidthBottom = canvasWidth * 0.7;
+    const laneWidthTop = canvasWidth * 0.1;
+    const laneHeight = canvasHeight * 0.8;
+    
+    const laneXBottomLeft = (canvasWidth - laneWidthBottom) / 2;
+    const laneXBottomRight = laneXBottomLeft + laneWidthBottom;
+    const laneXTopLeft = (canvasWidth - laneWidthTop) / 2;
+    const laneXTopRight = laneXTopLeft + laneWidthTop;
+    
+    const laneYBottom = canvasHeight * 0.9;
+    const laneYTop = canvasHeight * 0.15;
+    
+    const bgGradient = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+    bgGradient.addColorStop(0, COLORS.deepViolet);
+    bgGradient.addColorStop(1, COLORS.steelBlue);
+    ctx.fillStyle = bgGradient;
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    
+    const laneGradient = ctx.createLinearGradient(0, laneYTop, 0, laneYBottom);
+    laneGradient.addColorStop(0, lightenColor(COLORS.steelBlue, 10));
+    laneGradient.addColorStop(1, darkenColor(COLORS.steelBlue, 10));
+    ctx.fillStyle = laneGradient;
+    
+    ctx.beginPath();
+    ctx.moveTo(laneXBottomLeft, laneYBottom);
+    ctx.lineTo(laneXBottomRight, laneYBottom);
+    ctx.lineTo(laneXTopRight, laneYTop);
+    ctx.lineTo(laneXTopLeft, laneYTop);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.strokeStyle = COLORS.white;
+    ctx.lineWidth = 2;
+    
+    ctx.beginPath();
+    ctx.moveTo(laneXBottomLeft, laneYBottom);
+    ctx.lineTo(laneXTopLeft, laneYTop);
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.moveTo(laneXBottomRight, laneYBottom);
+    ctx.lineTo(laneXTopRight, laneYTop);
+    ctx.stroke();
+    
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 5]);
+    
+    ctx.beginPath();
+    ctx.moveTo(laneXBottomLeft + laneWidthBottom * 0.2, laneYBottom);
+    ctx.lineTo(laneXTopLeft + laneWidthTop * 0.2, laneYTop);
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.moveTo(laneXBottomRight - laneWidthBottom * 0.2, laneYBottom);
+    ctx.lineTo(laneXTopRight - laneWidthTop * 0.2, laneYTop);
+    ctx.stroke();
+    
+    ctx.setLineDash([]);
+    
+    const numMarkers = 8;
+    for (let i = 0; i <= numMarkers; i++) {
+        const t = i / numMarkers;
+        const currentY = laneYBottom * (1 - t) + laneYTop * t;
+        const currentSize = 6 * (1 - t * 0.7);
+        const currentXLeft = laneXBottomLeft * (1 - t) + laneXTopLeft * t;
+        const currentXRight = laneXBottomRight * (1 - t) + laneXTopRight * t;
+        
+        ctx.fillStyle = COLORS.white;
+        ctx.fillRect(currentXLeft - currentSize / 2, currentY - currentSize / 2, currentSize, currentSize);
+        ctx.fillRect(currentXRight - currentSize / 2, currentY - currentSize / 2, currentSize, currentSize);
+    }
+    
+    ctx.restore();
+}
+
+function drawShadow(ctx, x, y, width, opacity, blur = 10, offsetY = 5) {
+    ctx.save();
+    ctx.shadowColor = `rgba(30, 60, 90, ${opacity})`;
+    ctx.shadowBlur = blur;
+    ctx.fillStyle = `rgba(30, 60, 90, ${opacity * 0.5})`;
+    ctx.beginPath();
+    ctx.ellipse(x, y + offsetY, width * 0.8, width * 0.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+}
+
+function drawBowlingBall(ctx, x, y, radius, color, pattern = 'solid') {
+    ctx.save();
+    
+    const lightX = x - radius * 0.3;
+    const lightY = y - radius * 0.3;
+    const gradient = ctx.createRadialGradient(lightX, lightY, radius * 0.1, x, y, radius);
+    gradient.addColorStop(0, lightenColor(color, 15));
+    gradient.addColorStop(0.5, color);
+    gradient.addColorStop(1, darkenColor(color, 20));
+    
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    
+    // Pattern
+    if (pattern === 'stars') {
+        for (let i = 0; i < 5; i++) {
+            const angle = (i / 5) * Math.PI * 2;
+            const sx = x + Math.cos(angle) * radius * 0.5;
+            const sy = y + Math.sin(angle) * radius * 0.5;
+            drawStar(ctx, sx, sy, 8, 5, COLORS.gameGold);
+        }
+    } else if (pattern === 'dots') {
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const dx = x + Math.cos(angle) * radius * 0.5;
+            const dy = y + Math.sin(angle) * radius * 0.5;
+            ctx.beginPath();
+            ctx.arc(dx, dy, 6, 0, Math.PI * 2);
+            ctx.fillStyle = COLORS.white;
+            ctx.fill();
+        }
+    } else if (pattern === 'waves') {
+        ctx.strokeStyle = '#CCFFFF';
+        ctx.lineWidth = 2;
+        for (let i = -1; i <= 1; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x - radius * 0.7, y + i * 15);
+            ctx.bezierCurveTo(
+                x - radius * 0.3, y + i * 15 - 10,
+                x + radius * 0.3, y + i * 15 + 10,
+                x + radius * 0.7, y + i * 15
+            );
+            ctx.stroke();
+        }
+    }
+    
+    // Specular highlight
+    ctx.beginPath();
+    ctx.ellipse(x - radius * 0.25, y - radius * 0.25, radius * 0.2, radius * 0.1, -Math.PI / 8, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.fill();
+    
+    // Finger holes
+    const holeRadius = radius * 0.1;
+    const holeColor = '#4A4A4A';
+    
+    const drawHole = (hx, hy) => {
+        const holeGrad = ctx.createRadialGradient(hx - holeRadius * 0.3, hy - holeRadius * 0.3, holeRadius * 0.1, hx, hy, holeRadius);
+        holeGrad.addColorStop(0, lightenColor(holeColor, 20));
+        holeGrad.addColorStop(1, holeColor);
+        ctx.beginPath();
+        ctx.arc(hx, hy, holeRadius, 0, Math.PI * 2);
+        ctx.fillStyle = holeGrad;
+        ctx.fill();
+    };
+    
+    drawHole(x - radius * 0.2, y + radius * 0.1);
+    drawHole(x + radius * 0.2, y + radius * 0.1);
+    drawHole(x, y + radius * 0.35);
+    
+    ctx.restore();
+}
+
+function drawStar(ctx, cx, cy, size, points, color) {
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    for (let i = 0; i < points * 2; i++) {
+        const angle = (i * Math.PI) / points - Math.PI / 2;
+        const r = i % 2 === 0 ? size : size * 0.4;
+        const x = cx + Math.cos(angle) * r;
+        const y = cy + Math.sin(angle) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+}
+
+function drawBowlingPin(ctx, x, y, scale, rotation = 0) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
+    ctx.scale(scale, scale);
+    
+    const baseWidth = 25;
+    const height = 60;
+    const pinCream = '#FFF8DC';
+    const stripeColor = '#CE275C';
+    
+    const gradient = ctx.createLinearGradient(-baseWidth * 0.5, -height, baseWidth * 0.5, 0);
+    gradient.addColorStop(0, lightenColor(pinCream, 10));
+    gradient.addColorStop(0.3, pinCream);
+    gradient.addColorStop(0.7, darkenColor(pinCream, 5));
+    gradient.addColorStop(1, darkenColor(pinCream, 10));
+    
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, baseWidth * 0.5, baseWidth * 0.15, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.moveTo(-baseWidth * 0.45, 0);
+    ctx.quadraticCurveTo(-baseWidth * 0.6, -height * 0.2, -baseWidth * 0.3, -height * 0.5);
+    ctx.bezierCurveTo(-baseWidth * 0.2, -height * 0.7, -baseWidth * 0.05, -height * 0.9, 0, -height);
+    ctx.bezierCurveTo(baseWidth * 0.05, -height * 0.9, baseWidth * 0.2, -height * 0.7, baseWidth * 0.3, -height * 0.5);
+    ctx.quadraticCurveTo(baseWidth * 0.6, -height * 0.2, baseWidth * 0.45, 0);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-baseWidth * 0.4, -height * 0.1);
+    ctx.quadraticCurveTo(-baseWidth * 0.5, -height * 0.3, -baseWidth * 0.2, -height * 0.6);
+    ctx.stroke();
+    
+    ctx.fillStyle = stripeColor;
+    ctx.beginPath();
+    ctx.ellipse(0, -height * 0.25, baseWidth * 0.3, baseWidth * 0.1, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.restore();
+}
+
+function drawParticle(ctx, x, y, size, color, alpha) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = size * 0.8;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+}
+
+function drawButton(ctx, x, y, width, height, text, color, textColor = '#FFFFFF', borderRadius = 12) {
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.1)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetY = 4;
+    
+    const buttonGradient = ctx.createLinearGradient(x, y, x, y + height);
+    buttonGradient.addColorStop(0, lightenColor(color, 5));
+    buttonGradient.addColorStop(1, darkenColor(color, 5));
+    ctx.fillStyle = buttonGradient;
+    
+    drawRoundedRect(ctx, x, y, width, height, borderRadius);
+    ctx.fill();
+    ctx.restore();
+    
+    ctx.fillStyle = textColor;
+    ctx.font = "bold 18px 'system-ui', 'Roboto', sans-serif";
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x + width / 2, y + height / 2);
+}
+
+function drawCoin(ctx, x, y, size) {
+    ctx.save();
+    const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
+    gradient.addColorStop(0, '#FFEB3B');
+    gradient.addColorStop(1, '#FFC107');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#FFFF8D';
+    drawStar(ctx, x, y, size * 0.5, 5, '#FFFF8D');
+    ctx.restore();
+}
+
+function drawCrown(ctx, x, y, size) {
+    ctx.save();
+    ctx.fillStyle = COLORS.gameGold;
+    ctx.beginPath();
+    ctx.moveTo(x - size, y + size * 0.5);
+    ctx.lineTo(x - size, y - size * 0.3);
+    ctx.lineTo(x - size * 0.5, y);
+    ctx.lineTo(x, y - size * 0.5);
+    ctx.lineTo(x + size * 0.5, y);
+    ctx.lineTo(x + size, y - size * 0.3);
+    ctx.lineTo(x + size, y + size * 0.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+}
+
+// Main render
+function render() {
+    ctx.save();
+    ctx.scale(scale, scale);
+    
+    // Background and lane
+    drawLaneSurface(ctx, BASE_WIDTH, BASE_HEIGHT);
+    
+    // Pin shadows
+    pins.filter(p => p.state !== 'FALLEN').forEach(pin => {
+        drawShadow(ctx, pin.x, pin.y + 30 * pin.scale, 20 * pin.scale, 0.3);
+    });
+    
+    // Pins (back to front)
+    [...pins].sort((a, b) => a.y - b.y).forEach(pin => {
+        if (pin.state === 'FALLEN') return;
+        drawBowlingPin(ctx, pin.x, pin.y, pin.scale, pin.rotation);
+    });
+    
+    // Ball shadow
+    if (state !== GameState.GAME_OVER && state !== GameState.SHOP) {
+        drawShadow(ctx, ball.x, ball.y + 20, ball.radius, 0.4);
+    }
+    
+    // Ball
+    if (state !== GameState.GAME_OVER && state !== GameState.SHOP) {
+        const design = BALL_DESIGNS[currentBallIndex];
+        drawBowlingBall(ctx, ball.x, ball.y, ball.radius, design.color, design.pattern);
+    }
+    
+    // Particles
+    particles.forEach(p => {
+        drawParticle(ctx, p.x, p.y, p.size, p.color, p.life);
+    });
+    
+    // Flying coins
+    flyingCoins.forEach(c => {
+        drawCoin(ctx, c.x, c.y, 8);
+    });
+    
+    // UI
+    drawUI();
+    
+    // Feedback text
+    if (showFeedback) {
+        ctx.save();
+        ctx.font = "bold 48px 'system-ui', 'Roboto', sans-serif";
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = COLORS.white;
+        ctx.globalAlpha = Math.min(1, showFeedback.timer);
+        const feedScale = showFeedback.scale;
+        ctx.translate(BASE_WIDTH / 2, BASE_HEIGHT / 2 - 100);
+        ctx.scale(feedScale, feedScale);
+        ctx.fillText(showFeedback.text, 0, 0);
+        ctx.restore();
+    }
+    
+    // Swipe guide
+    if (state === GameState.AIMING && swipeStart && swipeEnd) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(swipeStart.x, swipeStart.y);
+        ctx.lineTo(swipeEnd.x, swipeEnd.y);
+        ctx.stroke();
+    }
+    
+    // Game Over overlay
+    if (state === GameState.GAME_OVER) {
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+        
+        ctx.fillStyle = COLORS.white;
+        ctx.font = "bold 36px 'system-ui', 'Roboto', sans-serif";
+        ctx.textAlign = 'center';
+        ctx.fillText('Game Over!', BASE_WIDTH / 2, BASE_HEIGHT / 2 - 80);
+        
+        ctx.font = "bold 48px 'system-ui', 'Roboto', sans-serif";
+        ctx.fillText(score, BASE_WIDTH / 2, BASE_HEIGHT / 2 - 20);
+        
+        ctx.font = "20px 'system-ui', 'Roboto', sans-serif";
+        ctx.fillText('High Score: ' + highScore, BASE_WIDTH / 2, BASE_HEIGHT / 2 + 30);
+        
+        drawCoin(ctx, BASE_WIDTH / 2 - 40, BASE_HEIGHT / 2 + 70, 12);
+        ctx.fillText(coins, BASE_WIDTH / 2, BASE_HEIGHT / 2 + 70);
+        
+        drawButton(ctx, playAgainBtn.x, playAgainBtn.y, playAgainBtn.w, playAgainBtn.h, 'Play Again', COLORS.actionOrange);
+        drawButton(ctx, shopBtn.x, shopBtn.y, shopBtn.w, shopBtn.h, 'Ball Shop', COLORS.darkGrey);
+    }
+    
+    // Shop overlay
+    if (state === GameState.SHOP) {
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+        
+        // Close button
+        ctx.fillStyle = COLORS.white;
+        ctx.font = "bold 24px 'system-ui', sans-serif";
+        ctx.textAlign = 'center';
+        ctx.fillText('âœ•', 40, 50);
+        
+        ctx.font = "bold 32px 'system-ui', 'Roboto', sans-serif";
+        ctx.fillText('Ball Shop', BASE_WIDTH / 2, 80);
+        
+        // Coins display
+        drawCoin(ctx, BASE_WIDTH - 60, 40, 12);
+        ctx.font = "bold 20px 'system-ui', sans-serif";
+        ctx.fillText(coins, BASE_WIDTH - 90, 45);
+        
+        const design = BALL_DESIGNS[currentBallIndex];
+        
+        // Ball preview
+        drawBowlingBall(ctx, BASE_WIDTH / 2, BASE_HEIGHT / 2 - 50, 80, design.color, design.pattern);
+        
+        ctx.fillStyle = COLORS.white;
+        ctx.font = "bold 24px 'system-ui', sans-serif";
+        ctx.fillText(design.name, BASE_WIDTH / 2, BASE_HEIGHT / 2 + 60);
+        
+        // Arrows
+        ctx.font = "bold 40px 'system-ui', sans-serif";
+        ctx.fillStyle = '#AAAAAA';
+        ctx.fillText('â€¹', 60, BASE_HEIGHT / 2 - 50);
+        ctx.fillText('â€º', BASE_WIDTH - 60, BASE_HEIGHT / 2 - 50);
+        
+        // Cost/owned
+        if (design.owned) {
+            ctx.fillStyle = '#32CD32';
+            ctx.font = "bold 20px 'system-ui', sans-serif";
+            ctx.fillText('OWNED', BASE_WIDTH / 2, BASE_HEIGHT / 2 + 100);
+        } else {
+            drawCoin(ctx, BASE_WIDTH / 2 - 30, BASE_HEIGHT / 2 + 100, 10);
+            ctx.fillStyle = COLORS.white;
+            ctx.font = "bold 20px 'system-ui', sans-serif";
+            ctx.fillText(design.cost, BASE_WIDTH / 2 + 10, BASE_HEIGHT / 2 + 100);
+            
+            if (coins >= design.cost) {
+                drawButton(ctx, BASE_WIDTH / 2 - 60, BASE_HEIGHT / 2 + 120, 120, 40, 'BUY', COLORS.actionOrange);
+            } else {
+                ctx.fillStyle = '#808080';
+                ctx.font = "16px 'system-ui', sans-serif";
+                ctx.fillText('Not enough coins', BASE_WIDTH / 2, BASE_HEIGHT / 2 + 145);
+            }
+        }
+    }
+    
+    ctx.restore();
+}
+
+function drawUI() {
+    // Score
+    ctx.fillStyle = COLORS.white;
+    ctx.font = "bold 48px 'system-ui', 'Roboto', sans-serif";
+    ctx.textAlign = 'center';
+    ctx.fillText(score, BASE_WIDTH / 2, 50);
+    
+    // High score with crown
+    drawCrown(ctx, BASE_WIDTH / 2 - 50, 80, 12);
+    ctx.font = "20px 'system-ui', 'Roboto', sans-serif";
+    ctx.fillText(highScore, BASE_WIDTH / 2, 85);
+    
+    // Coins
+    drawCoin(ctx, BASE_WIDTH - 50, 30, 10);
+    ctx.font = "bold 18px 'system-ui', sans-serif";
+    ctx.textAlign = 'right';
+    ctx.fillText(coins, BASE_WIDTH - 70, 35);
+    
+    // Frame indicators
+    ctx.textAlign = 'center';
+    const boxSize = 32;
+    const startX = BASE_WIDTH / 2 - (5 * boxSize);
+    
+    for (let i = 0; i < 10; i++) {
+        const x = startX + i * (boxSize + 4);
+        const y = 110;
+        
+        ctx.strokeStyle = i === currentFrame ? COLORS.white : 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 2;
+        drawRoundedRect(ctx, x, y, boxSize, boxSize, 4);
+        ctx.stroke();
+        
+        if (frameScores[i]) {
+            ctx.fillStyle = COLORS.white;
+            ctx.font = "bold 18px 'system-ui', sans-serif";
+            ctx.fillText(frameScores[i], x + boxSize / 2, y + boxSize / 2 + 6);
+        }
+    }
+    
+    // Progress bar
+    const progressWidth = 100;
+    const progressHeight = 12;
+    const progressX = BASE_WIDTH - progressWidth - 20;
+    const progressY = 60;
+    const progress = (totalPinsKnocked % 100) / 100;
+    
+    ctx.fillStyle = COLORS.mutedLilac;
+    drawRoundedRect(ctx, progressX, progressY, progressWidth, progressHeight, 6);
+    ctx.fill();
+    
+    ctx.fillStyle = COLORS.lightMauve;
+    drawRoundedRect(ctx, progressX, progressY, progressWidth * progress, progressHeight, 6);
+    ctx.fill();
+    
+    ctx.fillStyle = COLORS.white;
+    ctx.font = "12px 'system-ui', sans-serif";
+    ctx.textAlign = 'right';
+    ctx.fillText((totalPinsKnocked % 100) + '/100 pins', BASE_WIDTH - 20, progressY + progressHeight + 15);
+    
+    // Swipe hint (first game)
+    if (state === GameState.AIMING && score === 0 && currentFrame === 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.font = "18px 'system-ui', sans-serif";
+        ctx.textAlign = 'center';
+        const pulseAlpha = 0.5 + Math.sin(Date.now() / 500) * 0.3;
+        ctx.globalAlpha = pulseAlpha;
+        ctx.fillText('Swipe UP to bowl!', BASE_WIDTH / 2, BASE_HEIGHT - 200);
+        
+        // Arrow
+        ctx.beginPath();
+        ctx.moveTo(BASE_WIDTH / 2, BASE_HEIGHT - 170);
+        ctx.lineTo(BASE_WIDTH / 2 - 15, BASE_HEIGHT - 150);
+        ctx.lineTo(BASE_WIDTH / 2 + 15, BASE_HEIGHT - 150);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+}
+
+// Game loop
+let lastTime = 0;
+
+function gameLoop(timestamp) {
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+    lastTime = timestamp;
+    
+    update(dt);
+    render();
+    
+    requestAnimationFrame(gameLoop);
+}
+
+// Initialize
+createPins();
+requestAnimationFrame(gameLoop);
+
+})();
+</script>
+</body>
+</html>
