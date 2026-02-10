@@ -365,11 +365,12 @@ function getKeyboardLayout(){
     'ASDFGHJKL'.split(''),
     ['ENT','Z','X','C','V','B','N','M','⌫']
   ];
-  const maxW=Math.min(W*0.97,460);
+  const maxW=Math.min(W*0.98,460);
   const kGap=u*0.007;
-  const kh=u*0.075;
+  // Use available space: keyboard sits at bottom, fill gap better
+  const kh=Math.min(Math.max(u*0.115, 48), 58);
   const totalH=kh*3+kGap*2;
-  const baseY=H-totalH-u*0.02;
+  const baseY=H-totalH-u*0.015;
   const keys=[];
   for(let r=0;r<rows.length;r++){
     const row=rows[r];
@@ -464,7 +465,7 @@ function drawKeyboard(){
 
     ctx.fillStyle=st==='absent'?'#888899':COL.keyText;
     const label=k.letter==='ENT'?'↵':k.letter;
-    const fs=k.letter==='ENT'||k.letter==='⌫'?u*0.04:u*0.032;
+    const fs=k.letter==='ENT'||k.letter==='⌫'?u*0.048:u*0.04;
     ctx.font='bold '+Math.round(fs)+'px -apple-system,sans-serif';
     ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText(label,k.x+k.w/2,k.y+k.h/2+1);
