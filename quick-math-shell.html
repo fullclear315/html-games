@@ -1,0 +1,269 @@
+<!--
+  Quick Math — Shell (chunk 0)
+  Renders round 1 with CTA. Loads core.js on first tap.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Quick Math</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+canvas{display:block;position:absolute;top:0;left:0}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+'use strict';
+// ── Shared globals on window.G so core.js can read them ──
+const G = window.G = {};
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const FONT = '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+
+// Colors
+G.BG = '#1a1025'; G.BG2 = '#231535'; G.ACC = '#c084fc'; G.ACC2 = '#a855f7';
+G.GOLD = '#ffd93d'; G.GREEN = '#6bcb77'; G.RED = '#ff6b6b'; G.ORANGE = '#fb923c';
+G.WHITE = '#f5f0ff'; G.DIM = '#8b7fa8'; G.BTN_BG = '#2d1f45'; G.BTN_BORDER = '#4c3570';
+const { BG, BG2, ACC, WHITE, DIM, BTN_BG, BTN_BORDER, GOLD } = G;
+
+// Viewport
+let W, H, VW, VH, VX, VY, u;
+let lastRW = 0, lastRH = 0, bgGrad = null;
+const MAX_ASPECT = 9 / 16;
+
+function resize() {
+  const rw = window.innerWidth, rh = window.innerHeight;
+  if (rw === lastRW && rh === lastRH) return;
+  lastRW = rw; lastRH = rh;
+  canvas.width = rw; canvas.height = rh;
+  canvas.style.width = rw + 'px'; canvas.style.height = rh + 'px';
+  if (rw / rh > MAX_ASPECT) {
+    VW = Math.round(rh * MAX_ASPECT); VH = rh;
+    VX = Math.round((rw - VW) / 2); VY = 0;
+  } else { VW = rw; VH = rh; VX = 0; VY = 0; }
+  W = VW; H = VH; u = Math.min(W, H);
+  bgGrad = ctx.createLinearGradient(0, 0, 0, H * 0.3);
+  bgGrad.addColorStop(0, BG2); bgGrad.addColorStop(1, 'transparent');
+}
+window.addEventListener('resize', resize); resize();
+
+// Expose viewport
+G.canvas = canvas; G.ctx = ctx; G.FONT = FONT;
+Object.defineProperty(G, 'W', { get() { return W; } });
+Object.defineProperty(G, 'H', { get() { return H; } });
+Object.defineProperty(G, 'VX', { get() { return VX; } });
+Object.defineProperty(G, 'VY', { get() { return VY; } });
+Object.defineProperty(G, 'u', { get() { return u; } });
+G.resize = resize; G.bgGrad = null;
+Object.defineProperty(G, 'bgGrad', { get() { return bgGrad; } });
+
+// ── PRNG (needed for seeded round 1) ──
+let rng = Math.random;
+function mulberry32(seed) {
+  let s = seed | 0;
+  return function () {
+    s = (s + 0x6D2B79F5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function hashSeed(seed, round, diff) {
+  let h = seed ^ (round * 2654435761) ^ (diff * 40503);
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+  h = Math.imul(h ^ (h >>> 13), 0x45d9f3b);
+  return (h ^ (h >>> 16)) >>> 0;
+}
+function randInt(a, b) { return Math.floor(rng() * (b - a + 1)) + a; }
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = randInt(0, i); [a[i], a[j]] = [a[j], a[i]]; } }
+function newSeed() { return (Math.random() * 0xFFFFFFFF) >>> 0; }
+function seedToCode(s) { return s.toString(36).slice(0, 6).padStart(6, '0'); }
+function codeToSeed(c) { return parseInt(c, 36) || 0; }
+
+// Expose PRNG for core
+G.mulberry32 = mulberry32; G.hashSeed = hashSeed;
+G.randInt = randInt; G.shuffle = shuffle;
+G.newSeed = newSeed; G.seedToCode = seedToCode; G.codeToSeed = codeToSeed;
+
+// URL seed
+let urlSeed = null;
+try { const p = new URLSearchParams(location.search).get('s'); if (p) urlSeed = codeToSeed(p); } catch (e) {}
+G.urlSeed = urlSeed;
+
+// ── Generate round 1 (Easy, diff=0) ──
+const gameSeed = urlSeed !== null ? urlSeed : newSeed();
+rng = mulberry32(hashSeed(gameSeed, 0, 0));
+
+function genEquation() {
+  let a, b, answer, op;
+  // Always Easy for round 1 in shell
+  if (rng() < 0.6) { answer = randInt(5, 15); a = randInt(2, answer - 2); b = answer - a; op = '+'; }
+  else { a = randInt(8, 18); b = randInt(2, a - 2); answer = a - b; op = '-'; }
+  const opDisplay = op === '+' ? '+' : '−';
+  const display = a + ' ' + opDisplay + ' ' + b + ' = ?';
+  const hidden = answer;
+  let options = [hidden]; const nearby = new Set([hidden]); let att = 0;
+  while (options.length < 4 && att < 100) {
+    let wrong = hidden + randInt(-4, 4);
+    if (wrong < 0) wrong = Math.abs(wrong) + randInt(0, 2);
+    if (wrong === hidden || nearby.has(wrong)) { att++; continue; }
+    nearby.add(wrong); options.push(wrong); att++;
+  }
+  while (options.length < 4) { const w = hidden + options.length * 2 + 1; options.push(nearby.has(w) ? hidden + options.length * 3 + 7 : w); }
+  shuffle(options);
+  return { display, answer: hidden, options, correctIdx: options.indexOf(hidden) };
+}
+
+const equation = genEquation();
+rng = Math.random;
+G.gameSeed = gameSeed;
+G.equation = equation;
+
+// ── Drawing helpers ──
+function fillText(text, x, y, size, color, align, weight) {
+  ctx.font = (weight || '600') + ' ' + Math.round(size) + 'px ' + FONT;
+  ctx.fillStyle = color || WHITE; ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, Math.round(x), Math.round(y));
+}
+function roundRect(x, y, w, h, r) {
+  x = Math.round(x); y = Math.round(y); w = Math.round(w); h = Math.round(h); r = Math.round(r);
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r); ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r); ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
+}
+G.fillText = fillText; G.roundRect = roundRect;
+
+// ── Render ──
+let btnRects = [], animFrame = 0, shellActive = true;
+
+function draw() {
+  if (!shellActive) return;
+  animFrame++; resize();
+  const cx = W / 2, safePad = u * 0.035;
+
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.save(); ctx.translate(VX, VY);
+  ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+  ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H * 0.3);
+  btnRects = [];
+
+  // Bottom dock
+  const dockH = u * 0.09, dockY = H - dockH;
+  ctx.fillStyle = '#0d0818'; ctx.fillRect(0, dockY, W, dockH);
+  ctx.fillStyle = '#2a1a40'; ctx.fillRect(safePad, dockY, W - safePad * 2, 1);
+  fillText('0', safePad + u * 0.02, dockY + dockH / 2, u * 0.048, ACC, 'left', '800');
+  fillText('pts', safePad + u * 0.02 + u * 0.03, dockY + dockH / 2, u * 0.032, DIM, 'left', '600');
+
+  // Top HUD
+  let y = safePad + u * 0.02;
+  fillText('1/20', cx, y, u * 0.038, DIM);
+
+  // Hearts
+  const hs = u * 0.02;
+  for (let i = 0; i < 3; i++) {
+    const hx = W - safePad - (3 - i) * (hs * 3.2);
+    ctx.fillStyle = G.RED;
+    ctx.beginPath();
+    ctx.arc(hx - hs * 0.52, y - hs * 0.25, hs * 0.6, Math.PI, 0);
+    ctx.arc(hx + hs * 0.52, y - hs * 0.25, hs * 0.6, Math.PI, 0);
+    ctx.lineTo(hx, y + hs * 0.95); ctx.closePath(); ctx.fill();
+  }
+  y += u * 0.04;
+
+  // Timer bar (full, gold)
+  const barW = Math.min(W * 0.85, 400), barH = Math.max(H * 0.01, 4), bx = cx - barW / 2;
+  ctx.fillStyle = '#1a1025'; roundRect(bx, y, barW, barH, barH / 2); ctx.fill();
+  roundRect(bx, y, barW, barH, barH / 2); ctx.fillStyle = GOLD; ctx.fill();
+  y += barH + H * 0.015;
+
+  // Progress dots (round 1 = current white dot, rest dim)
+  const dotGap = Math.min(W * 0.82, 380) / 20;
+  const dotStartX = cx - (20 * dotGap) / 2;
+  const dotR = Math.max(Math.min(dotGap * 0.3, 4), 2);
+  for (let i = 0; i < 20; i++) {
+    const dx = dotStartX + i * dotGap + dotGap / 2;
+    ctx.fillStyle = i === 0 ? WHITE : '#3a2855';
+    ctx.beginPath(); ctx.arc(dx, y, dotR, 0, Math.PI * 2); ctx.fill();
+  }
+  y += u * 0.04;
+
+  // Equation
+  const eqFS = u * 0.095;
+  const eqY = y + (H * 0.20) / 2;
+  fillText(equation.display, cx, eqY, eqFS, WHITE, 'center', '700');
+  fillText('Easy', cx, eqY - eqFS * 0.8, u * 0.032, G.GREEN, 'center', '600');
+
+  // Buttons
+  const btnAreaTop = H * 0.56, btnAreaBottom = dockY - u * 0.03;
+  const btnTotalW = Math.min(W * 0.85, 400), btnGapV = u * 0.025;
+  const bw = (btnTotalW - btnGapV) / 2;
+  const bh = Math.min((btnAreaBottom - btnAreaTop - btnGapV) / 2, u * 0.16);
+  const bStartX = cx - btnTotalW / 2, bStartY = btnAreaTop;
+
+  for (let i = 0; i < 4; i++) {
+    const col = i % 2, row = Math.floor(i / 2);
+    const rx = bStartX + col * (bw + btnGapV), ry = bStartY + row * (bh + btnGapV);
+    roundRect(rx, ry, bw, bh, u * 0.02); ctx.fillStyle = BTN_BG; ctx.fill();
+    ctx.strokeStyle = BTN_BORDER; ctx.lineWidth = 2; ctx.stroke();
+    fillText(equation.options[i].toString(), rx + bw / 2, ry + bh / 2, u * 0.065, WHITE, 'center', '700');
+    btnRects.push({ x: rx, y: ry, w: bw, h: bh, idx: i });
+  }
+
+  // CTA
+  const pulse = 0.85 + 0.15 * Math.sin(animFrame * 0.06);
+  const ctaY = H * 0.50;
+  ctx.globalAlpha = pulse;
+  fillText('⬇️  Tap an answer!', cx, ctaY, u * 0.05, WHITE, 'center', '800');
+  ctx.globalAlpha = 0.5;
+  if (urlSeed !== null) fillText('⚔️ Challenge #' + seedToCode(urlSeed), cx, ctaY - u * 0.065, u * 0.036, GOLD, 'center', '600');
+  ctx.globalAlpha = 1;
+
+  ctx.restore();
+  requestAnimationFrame(draw);
+}
+
+// ── Input: first tap loads core.js ──
+let loading = false;
+function handleInput(e) {
+  if (!shellActive || loading) return;
+  e.preventDefault();
+  const t = e.touches ? e.touches[0] : e;
+  const rect = canvas.getBoundingClientRect();
+  const x = t.clientX - rect.left - VX, y = t.clientY - rect.top - VY;
+
+  for (const btn of btnRects) {
+    if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
+      loading = true;
+      // Record first answer for core.js to process
+      G.firstTap = { idx: btn.idx, time: performance.now() };
+
+      // Load core
+      const s = document.createElement('script');
+      s.src = 'quick-math-core.js';
+      s.onload = () => { shellActive = false; }; // stop shell loop
+      s.onerror = () => {
+        // Fallback: if core fails to load, just highlight correct answer
+        loading = false;
+      };
+      document.head.appendChild(s);
+      return;
+    }
+  }
+}
+canvas.addEventListener('touchstart', handleInput, { passive: false });
+canvas.addEventListener('mousedown', handleInput);
+// Store refs so core.js can remove them
+G.shellHandleInput = handleInput;
+
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>
