@@ -138,11 +138,12 @@ function sndGo(){
 }
 
 function sndGameOver(grade){
-  if(grade==='S'||grade==='A'){
+  const base=grade[0];
+  if(base==='S'||base==='A'){
     // Victory chord
     playChord([523,659,784],0.3,0.12,'sine');
     setTimeout(()=>playChord([587,740,880],0.4,0.1,'sine'),200);
-  } else if(grade==='B'||grade==='C'){
+  } else if(base==='B'||base==='C'){
     playChord([440,554,659],0.3,0.1,'sine');
   } else {
     playTone(220,0.3,0.1,'triangle');
@@ -341,30 +342,41 @@ function missCircle(){
   setTimeout(spawnCircle,400);
 }
 
-function calcScore(avgMs){
-  if(avgMs<=100)return 100;
-  if(avgMs>=1500)return 0;
-  return Math.round(100*Math.pow(1-((avgMs-100)/1400),1.5));
+function calcScore(avgMs,hits,misses){
+  // Effective avg: misses count as 2000ms reactions
+  const totalTime=avgMs*hits+misses*2000;
+  const effectiveAvg=totalTime/(hits+misses);
+  if(effectiveAvg<=175)return 100;
+  if(effectiveAvg>=2175)return 0;
+  return Math.round(100*(1-(effectiveAvg-175)/2000));
+}
+
+function getGrade(score){
+  if(score>=97)return{grade:'S',msg:'Inhuman reflexes!'};
+  if(score>=93)return{grade:'A+',msg:'Insane!'};
+  if(score>=87)return{grade:'A',msg:'Lightning fast!'};
+  if(score>=83)return{grade:'A-',msg:'Seriously quick!'};
+  if(score>=77)return{grade:'B+',msg:'Great reflexes!'};
+  if(score>=70)return{grade:'B',msg:'Quick hands!'};
+  if(score>=65)return{grade:'B-',msg:'Solid!'};
+  if(score>=58)return{grade:'C+',msg:'Getting there!'};
+  if(score>=50)return{grade:'C',msg:'Not bad!'};
+  if(score>=45)return{grade:'C-',msg:'Room to grow!'};
+  if(score>=38)return{grade:'D+',msg:'Keep at it!'};
+  if(score>=30)return{grade:'D',msg:'Keep practicing!'};
+  if(score>=22)return{grade:'D-',msg:'Warming up!'};
+  return{grade:'F',msg:'Try again!'};
 }
 
 function endGame(){
   state='gameover';
   const elapsed=(performance.now()-gameStartTime)/1000;
-  const avgTime=reactionTimes.length>0?reactionTimes.reduce((a,b)=>a+b,0)/reactionTimes.length:9999;
-  const score=calcScore(avgTime);
   const hits=reactionTimes.length;
+  const avgTime=reactionTimes.length>0?reactionTimes.reduce((a,b)=>a+b,0)/reactionTimes.length:9999;
+  const score=calcScore(avgTime,hits,misses);
   const fastCount=reactionTimes.filter(t=>t<FAST_MS).length;
-  gameOverData={score,avgTime:Math.round(avgTime),hits,misses,elapsed:Math.round(elapsed),maxScore:100,fastCount,bestStreak};
-  
-  let grade,msg;
-  if(score>=90){grade='S';msg='Insane reflexes!';}
-  else if(score>=75){grade='A';msg='Lightning fast!';}
-  else if(score>=60){grade='B';msg='Quick hands!';}
-  else if(score>=40){grade='C';msg='Not bad!';}
-  else if(score>=20){grade='D';msg='Keep practicing!';}
-  else{grade='F';msg='Try again!';}
-  gameOverData.grade=grade;
-  gameOverData.msg=msg;
+  const {grade,msg}=getGrade(score);
+  gameOverData={score,avgTime:Math.round(avgTime),hits,misses,elapsed:Math.round(elapsed),maxScore:100,fastCount,bestStreak,grade,msg};
   sndGameOver(grade);hapGameOver();
 
   window.dispatchEvent(new CustomEvent('gameComplete',{
@@ -410,7 +422,7 @@ function resetGame(){
 function buildScorecard(){
   const d=gameOverData;
   if(!d)return'';
-  const dots=resultLog.map(r=>r==='fast'?'🟡':r==='ok'?'🟢':r==='slow'?'🟠':'🔴').join('');
+  const dots=resultLog.map(r=>r==='fast'?'⚡':r==='ok'?'🟢':r==='slow'?'🟠':'🔴').join('');
   const lines=[
     '🎯 Color Pop',
     '',
@@ -469,6 +481,30 @@ function drawRoundRect(x,y,w,h,r){
 }
 
 const DOT_COLORS={fast:'#ffd93d',ok:'#6bcb77',slow:'#ff922b',miss:'#ff6b6b'};
+
+function drawDiamond(x,y,r){
+  ctx.beginPath();
+  ctx.moveTo(x,y-r*1.3);
+  ctx.lineTo(x+r,y);
+  ctx.lineTo(x,y+r*1.3);
+  ctx.lineTo(x-r,y);
+  ctx.closePath();
+}
+
+function drawDot(x,y,r,type){
+  if(type==='fast'){
+    ctx.fillStyle=DOT_COLORS.fast;
+    drawDiamond(x,y,r*1.15);
+    ctx.fill();
+    // tiny glow
+    ctx.fillStyle='rgba(255,217,61,0.3)';
+    drawDiamond(x,y,r*1.6);
+    ctx.fill();
+  } else {
+    ctx.fillStyle=DOT_COLORS[type]||'rgba(255,255,255,0.1)';
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+  }
+}
 
 // RENDER
 function draw(now){
@@ -594,15 +630,16 @@ function draw(now){
     const dotY=hudY+fontSize+14;
     for(let i=0;i<TOTAL;i++){
       const dx=dotStartX+i*(dotR*2+dotGap)+dotR;
-      ctx.beginPath();ctx.arc(dx,dotY,dotR,0,Math.PI*2);
       if(i<resultLog.length){
-        ctx.fillStyle=DOT_COLORS[resultLog[i]];
-      } else if(i===resultLog.length){
-        ctx.fillStyle='rgba(255,255,255,'+(0.4+0.3*Math.sin(now/200))+')';
+        drawDot(dx,dotY,dotR,resultLog[i]);
       } else {
-        ctx.fillStyle='rgba(255,255,255,0.1)';
+        if(i===resultLog.length){
+          ctx.fillStyle='rgba(255,255,255,'+(0.4+0.3*Math.sin(now/200))+')';
+        } else {
+          ctx.fillStyle='rgba(255,255,255,0.1)';
+        }
+        ctx.beginPath();ctx.arc(dx,dotY,dotR,0,Math.PI*2);ctx.fill();
       }
-      ctx.fill();
     }
     
     // Current circle
@@ -687,44 +724,64 @@ function draw(now){
     const d=gameOverData;
     const cx=W/2;
     
-    // Responsive unit: use min dimension so it works on both tall/narrow mobile and wide/short desktop
     const u=Math.min(W,H);
-    const maxW=Math.min(W,500); // cap content width on wide screens
+    const maxW=Math.min(W,500);
     const col1=cx-maxW*0.22,col2=cx+maxW*0.22;
     
-    // Flow top-down from a starting Y with consistent gaps
-    const pad=u*0.03;
-    let y=pad+u*0.08;
+    // Button metrics (compute early so we know available space)
+    const bh=Math.max(44,u*0.07);
+    const btnGap=10;
+    const btnTotalW=Math.min(W*0.82,420);
+    const playW=btnTotalW*0.55;
+    const shareW=btnTotalW-playW-btnGap;
+    const bxStart=(W-btnTotalW)/2;
+    const btnPad=Math.max(16,u*0.03);
+    const by=H-bh-btnPad;
+    
+    // Available vertical space: from top padding to button area
+    const topPad=Math.max(20,H*0.04);
+    const bottomLimit=by-20;
+    const availH=bottomLimit-topPad;
+    
+    // Spacing scale factor: distribute evenly across available height
+    // Content needs ~9 "units" of spacing
+    const sp=availH/9.5;
+    
+    let y=topPad+sp*0.7;
     
     // Grade
-    const gradeColors={S:'#ffd93d',A:'#6bcb77',B:'#4d96ff',C:'#ff922b',D:'#ff6b6b',F:'#ff6b6b'};
-    ctx.fillStyle=gradeColors[d.grade]||'#fff';
-    ctx.font='bold '+Math.round(u*0.12)+'px -apple-system,sans-serif';
+    const gradeColors={S:'#ffd93d','A+':'#b8e986','A':'#6bcb77','A-':'#6bcb77','B+':'#74b9ff','B':'#4d96ff','B-':'#4d96ff','C+':'#ffb347','C':'#ff922b','C-':'#ff922b','D+':'#ff8787','D':'#ff6b6b','D-':'#ff6b6b',F:'#ff6b6b'};
+    const gc=gradeColors[d.grade]||'#fff';
+    ctx.fillStyle=gc;
+    const gradeFS=d.grade.length>1?Math.min(sp*0.7,u*0.09):Math.min(sp*0.85,u*0.12);
+    ctx.font='bold '+Math.round(gradeFS)+'px -apple-system,sans-serif';
     ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText(d.grade,cx,y);
-    y+=u*0.08;
+    y+=sp*0.65;
     
     // Message
     ctx.fillStyle='rgba(255,255,255,0.7)';
-    ctx.font=Math.round(u*0.038)+'px -apple-system,sans-serif';
+    ctx.font=Math.round(Math.min(sp*0.3,u*0.038))+'px -apple-system,sans-serif';
     ctx.fillText(d.msg,cx,y);
-    y+=u*0.07;
+    y+=sp*0.65;
     
     // Score
     ctx.fillStyle='#ffffff';
-    ctx.font='bold '+Math.round(u*0.1)+'px -apple-system,sans-serif';
+    ctx.font='bold '+Math.round(Math.min(sp*0.75,u*0.1))+'px -apple-system,sans-serif';
     ctx.fillText(d.score,cx,y);
-    y+=u*0.055;
+    y+=sp*0.4;
     ctx.fillStyle='rgba(255,255,255,0.5)';
-    ctx.font=Math.round(u*0.03)+'px -apple-system,sans-serif';
+    ctx.font=Math.round(Math.min(sp*0.22,u*0.03))+'px -apple-system,sans-serif';
     ctx.fillText('SCORE',cx,y);
-    y+=u*0.065;
+    y+=sp*0.7;
     
     // Stats
-    const valFont='bold '+Math.round(u*0.046)+'px -apple-system,sans-serif';
-    const lblFont=Math.round(u*0.028)+'px -apple-system,sans-serif';
-    const lblGap=u*0.04;
-    const rowGap=u*0.1;
+    const valFS=Math.min(sp*0.35,u*0.046);
+    const lblFS=Math.min(sp*0.22,u*0.028);
+    const valFont='bold '+Math.round(valFS)+'px -apple-system,sans-serif';
+    const lblFont=Math.round(lblFS)+'px -apple-system,sans-serif';
+    const lblGap=valFS*1.1;
+    const rowGap=sp*0.95;
     
     // Row 1: avg time, hits
     ctx.fillStyle='rgba(255,255,255,0.9)';ctx.font=valFont;
@@ -755,32 +812,26 @@ function draw(now){
     ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font=lblFont;
     ctx.fillText('FAST TAPS',col1,y+lblGap);
     ctx.fillText('MISSES',col2,y+lblGap);
-    y+=rowGap*0.7;
+    y+=rowGap*0.75;
     
     // Dot replay
-    const dotR2=Math.max(3,u*0.007);
+    const dotR2=Math.max(4,u*0.009);
     const dotGap2=Math.max(2,u*0.005);
     const dotTotalW2=TOTAL*(dotR2*2+dotGap2)-dotGap2;
     const dotStartX2=(W-dotTotalW2)/2;
     for(let i=0;i<TOTAL;i++){
       const dx2=dotStartX2+i*(dotR2*2+dotGap2)+dotR2;
-      ctx.beginPath();ctx.arc(dx2,y,dotR2,0,Math.PI*2);
-      ctx.fillStyle=i<resultLog.length?DOT_COLORS[resultLog[i]]:'rgba(255,255,255,0.1)';
-      ctx.fill();
+      if(i<resultLog.length){
+        drawDot(dx2,y,dotR2,resultLog[i]);
+      } else {
+        ctx.fillStyle='rgba(255,255,255,0.1)';
+        ctx.beginPath();ctx.arc(dx2,y,dotR2,0,Math.PI*2);ctx.fill();
+      }
     }
-    y+=u*0.03;
-    ctx.font=Math.round(u*0.024)+'px -apple-system,sans-serif';
+    y+=sp*0.3;
+    ctx.font=Math.round(Math.min(sp*0.2,u*0.024))+'px -apple-system,sans-serif';
     ctx.fillStyle='rgba(255,255,255,0.35)';
     ctx.fillText('Each dot = one circle',W/2,y);
-    
-    // Buttons — position from bottom
-    const bh=Math.max(44,u*0.07);
-    const btnGap=10;
-    const btnTotalW=Math.min(W*0.82,420);
-    const playW=btnTotalW*0.55;
-    const shareW=btnTotalW-playW-btnGap;
-    const bxStart=(W-btnTotalW)/2;
-    const by=H-bh-Math.max(16,u*0.03);
     
     // Play Again
     btnRect={x:bxStart,y:by,w:playW,h:bh};
