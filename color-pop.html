@@ -432,11 +432,18 @@ function shareScore(){
   const card=buildScorecard();
   if(!card)return;
   vib(15);
-  // Textarea fallback — works in WebViews where clipboard API is blocked
+  // Web Share API — works on mobile Safari, Telegram WebView, Android
+  if(navigator.share){
+    navigator.share({text:card}).then(()=>{
+      shareFlash=performance.now();
+    }).catch(()=>{});
+    return;
+  }
+  // Desktop fallback: textarea + execCommand
   try{
     const ta=document.createElement('textarea');
     ta.value=card;
-    ta.style.cssText='position:fixed;left:-9999px;top:0;opacity:0';
+    ta.style.cssText='position:fixed;left:0;top:0;opacity:0.01;width:1px;height:1px';
     document.body.appendChild(ta);
     ta.focus();
     ta.select();
@@ -445,7 +452,7 @@ function shareScore(){
     document.body.removeChild(ta);
     if(ok){shareFlash=performance.now();return;}
   }catch(e){}
-  // Clipboard API as secondary attempt
+  // Last resort: clipboard API
   try{
     navigator.clipboard.writeText(card).then(()=>{
       shareFlash=performance.now();
@@ -793,7 +800,8 @@ function draw(now){
     drawRoundRect(sx,by,shareW,bh,bh/2);ctx.fill();
     ctx.fillStyle='#ffffff';
     ctx.font='bold '+Math.round(u*0.036)+'px -apple-system,sans-serif';
-    ctx.fillText(isCopied?'Copied!':'Share',sx+shareW/2,by+bh/2);
+    const shareLabel=isCopied?(navigator.share?'Shared!':'Copied!'):'Share';
+    ctx.fillText(shareLabel,sx+shareW/2,by+bh/2);
   }
   
   ctx.restore();
