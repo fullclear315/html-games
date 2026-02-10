@@ -379,7 +379,15 @@ function getTouch(e){
   return{x:t.clientX-rect.left,y:t.clientY-rect.top};
 }
 
-canvas.addEventListener('touchstart',function(e){
+canvas.addEventListener('touchstart',handleInput,{passive:false});
+canvas.addEventListener('mousedown',handleInput);
+
+let lastInputTime=0;
+function handleInput(e){
+  // Prevent double-fire from touch+synthetic mouse on mobile
+  const now2=performance.now();
+  if(now2-lastInputTime<50)return;
+  lastInputTime=now2;
   const p=getTouch(e);
   if(state==='intro'){initAudio();state='countdown';countdownVal=3;countdownTimer=performance.now();sndCountdown(3);hapCountdown();return;}
   if(state==='playing'){hitCircle(p.x,p.y);return;}
@@ -391,7 +399,7 @@ canvas.addEventListener('touchstart',function(e){
       shareScore();
     }
   }
-},{passive:false});
+}
 
 function resetGame(){
   circleIndex=0;reactionTimes=[];resultLog=[];misses=0;currentCircle=null;particles=[];floatingTexts=[];
