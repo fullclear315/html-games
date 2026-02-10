@@ -233,7 +233,7 @@ function drawFloatingTexts(){
     ctx.scale(scale,scale);
     ctx.globalAlpha=Math.min(f.life*2,1);
     ctx.fillStyle=f.color;
-    ctx.font='bold '+Math.round(W*f.size)+'px -apple-system,sans-serif';
+    ctx.font='bold '+Math.round(Math.min(W,H)*f.size)+'px -apple-system,sans-serif';
     ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText(f.text,0,0);
     ctx.restore();
@@ -483,32 +483,33 @@ function draw(now){
   comboScale+=(1-comboScale)*0.1;
 
   if(state==='intro'){
+    const u=Math.min(W,H);
     introAlpha+=introDir*dt*1.5;
     if(introAlpha>1){introAlpha=1;introDir=-1;}
     if(introAlpha<0.3){introAlpha=0.3;introDir=1;}
     
     ctx.fillStyle='#e0e0e0';
-    ctx.font='bold '+Math.round(W*0.1)+'px -apple-system,sans-serif';
+    ctx.font='bold '+Math.round(u*0.1)+'px -apple-system,sans-serif';
     ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText('🎯',W/2,H*0.3);
     ctx.fillStyle='#ffffff';
-    ctx.font='bold '+Math.round(W*0.08)+'px -apple-system,sans-serif';
+    ctx.font='bold '+Math.round(u*0.08)+'px -apple-system,sans-serif';
     ctx.fillText('Color Pop',W/2,H*0.42);
     
     ctx.fillStyle='rgba(200,200,220,0.7)';
-    ctx.font=Math.round(W*0.04)+'px -apple-system,sans-serif';
+    ctx.font=Math.round(u*0.04)+'px -apple-system,sans-serif';
     ctx.fillText('Tap circles before they vanish!',W/2,H*0.52);
     
     ctx.globalAlpha=introAlpha;
     ctx.fillStyle='#4d96ff';
-    ctx.font=Math.round(W*0.045)+'px -apple-system,sans-serif';
+    ctx.font=Math.round(u*0.04)+'px -apple-system,sans-serif';
     ctx.fillText('Tap to start',W/2,H*0.68);
     ctx.globalAlpha=1;
     
     const demoColors=['#ff6b6b','#ffd93d','#6bcb77','#4d96ff'];
     for(let i=0;i<4;i++){
       const angle=(now/2000)+i*(Math.PI/2);
-      const cx2=W/2+Math.cos(angle)*W*0.18;
+      const cx2=W/2+Math.cos(angle)*u*0.14;
       const cy2=H*0.82+Math.sin(angle)*20;
       ctx.fillStyle=demoColors[i];ctx.globalAlpha=0.6;
       ctx.beginPath();ctx.arc(cx2,cy2,18,0,Math.PI*2);ctx.fill();
@@ -532,15 +533,16 @@ function draw(now){
     ctx.save();
     ctx.translate(W/2,H/2);ctx.scale(scale,scale);
     ctx.globalAlpha=alpha;ctx.fillStyle=color;
-    ctx.font='bold '+Math.round(W*0.2)+'px -apple-system,sans-serif';
+    ctx.font='bold '+Math.round(Math.min(W,H)*0.15)+'px -apple-system,sans-serif';
     ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText(display,0,0);
     ctx.restore();ctx.globalAlpha=1;
   }
   
   else if(state==='playing'){
+    const u=Math.min(W,H);
     const hudY=12;
-    const fontSize=Math.round(W*0.042);
+    const fontSize=Math.round(u*0.035);
     
     // Left: running average
     const avg=getRunningAvg();
@@ -662,11 +664,11 @@ function draw(now){
         const bannerY=dotY+14;
         
         ctx.globalAlpha=alpha*0.85;ctx.fillStyle='rgba(20,20,50,0.75)';
-        const bannerW=W*0.65;
+        const bannerW=Math.min(W*0.65,350);
         drawRoundRect((W-bannerW)/2,bannerY,bannerW,36,18);ctx.fill();
         
         ctx.globalAlpha=alpha;ctx.fillStyle='#ffffff';
-        ctx.font='bold '+Math.round(W*0.04)+'px -apple-system,sans-serif';
+        ctx.font='bold '+Math.round(u*0.035)+'px -apple-system,sans-serif';
         ctx.textAlign='center';ctx.textBaseline='middle';
         ctx.fillText(milestone.text,W/2,bannerY+18);
         ctx.globalAlpha=1;
@@ -678,86 +680,107 @@ function draw(now){
     const d=gameOverData;
     const cx=W/2;
     
+    // Responsive unit: use min dimension so it works on both tall/narrow mobile and wide/short desktop
+    const u=Math.min(W,H);
+    const maxW=Math.min(W,500); // cap content width on wide screens
+    const col1=cx-maxW*0.22,col2=cx+maxW*0.22;
+    
+    // Flow top-down from a starting Y with consistent gaps
+    const pad=u*0.03;
+    let y=pad+u*0.08;
+    
+    // Grade
     const gradeColors={S:'#ffd93d',A:'#6bcb77',B:'#4d96ff',C:'#ff922b',D:'#ff6b6b',F:'#ff6b6b'};
     ctx.fillStyle=gradeColors[d.grade]||'#fff';
-    ctx.font='bold '+Math.round(W*0.18)+'px -apple-system,sans-serif';
+    ctx.font='bold '+Math.round(u*0.12)+'px -apple-system,sans-serif';
     ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText(d.grade,cx,H*0.15);
+    ctx.fillText(d.grade,cx,y);
+    y+=u*0.08;
     
+    // Message
     ctx.fillStyle='rgba(255,255,255,0.7)';
-    ctx.font=Math.round(W*0.045)+'px -apple-system,sans-serif';
-    ctx.fillText(d.msg,cx,H*0.235);
+    ctx.font=Math.round(u*0.038)+'px -apple-system,sans-serif';
+    ctx.fillText(d.msg,cx,y);
+    y+=u*0.07;
     
+    // Score
     ctx.fillStyle='#ffffff';
-    ctx.font='bold '+Math.round(W*0.14)+'px -apple-system,sans-serif';
-    ctx.fillText(d.score,cx,H*0.35);
+    ctx.font='bold '+Math.round(u*0.1)+'px -apple-system,sans-serif';
+    ctx.fillText(d.score,cx,y);
+    y+=u*0.055;
     ctx.fillStyle='rgba(255,255,255,0.5)';
-    ctx.font=Math.round(W*0.035)+'px -apple-system,sans-serif';
-    ctx.fillText('SCORE',cx,H*0.41);
+    ctx.font=Math.round(u*0.03)+'px -apple-system,sans-serif';
+    ctx.fillText('SCORE',cx,y);
+    y+=u*0.065;
     
-    const statsY=H*0.49;
-    const rowGap=W*0.145;
-    const col1=W*0.28,col2=W*0.72;
-    const valFont='bold '+Math.round(W*0.058)+'px -apple-system,sans-serif';
-    const lblFont=Math.round(W*0.035)+'px -apple-system,sans-serif';
-    const lblGap=W*0.058;
+    // Stats
+    const valFont='bold '+Math.round(u*0.046)+'px -apple-system,sans-serif';
+    const lblFont=Math.round(u*0.028)+'px -apple-system,sans-serif';
+    const lblGap=u*0.04;
+    const rowGap=u*0.1;
     
+    // Row 1: avg time, hits
     ctx.fillStyle='rgba(255,255,255,0.9)';ctx.font=valFont;
-    ctx.fillText(d.avgTime+'ms',col1,statsY);
-    ctx.fillText(d.hits+'/'+TOTAL,col2,statsY);
+    ctx.fillText(d.avgTime+'ms',col1,y);
+    ctx.fillText(d.hits+'/'+TOTAL,col2,y);
     ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font=lblFont;
-    ctx.fillText('AVG TIME',col1,statsY+lblGap);
-    ctx.fillText('HITS',col2,statsY+lblGap);
+    ctx.fillText('AVG TIME',col1,y+lblGap);
+    ctx.fillText('HITS',col2,y+lblGap);
+    y+=rowGap;
     
-    const row2Y=statsY+rowGap;
+    // Row 2: fastest, fast streak
     if(reactionTimes.length>0){
       ctx.fillStyle='#ffd93d';ctx.font=valFont;
-      ctx.fillText(Math.round(Math.min(...reactionTimes))+'ms',col1,row2Y);
+      ctx.fillText(Math.round(Math.min(...reactionTimes))+'ms',col1,y);
     }
     ctx.fillStyle=d.bestStreak>=5?'#ff922b':'rgba(255,255,255,0.9)';ctx.font=valFont;
-    ctx.fillText(d.bestStreak+'x',col2,row2Y);
+    ctx.fillText(d.bestStreak+'x',col2,y);
     ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font=lblFont;
-    ctx.fillText('FASTEST',col1,row2Y+lblGap);
-    ctx.fillText('FAST STREAK',col2,row2Y+lblGap);
+    ctx.fillText('FASTEST',col1,y+lblGap);
+    ctx.fillText('FAST STREAK',col2,y+lblGap);
+    y+=rowGap;
     
-    const row3Y=statsY+rowGap*2;
+    // Row 3: fast taps, misses
     ctx.fillStyle='#ffd93d';ctx.font=valFont;
-    ctx.fillText('⚡'+d.fastCount,col1,row3Y);
+    ctx.fillText('⚡'+d.fastCount,col1,y);
     ctx.fillStyle=d.misses>0?'#ff6b6b':'#6bcb77';ctx.font=valFont;
-    ctx.fillText(d.misses.toString(),col2,row3Y);
+    ctx.fillText(d.misses.toString(),col2,y);
     ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font=lblFont;
-    ctx.fillText('FAST TAPS',col1,row3Y+lblGap);
-    ctx.fillText('MISSES',col2,row3Y+lblGap);
+    ctx.fillText('FAST TAPS',col1,y+lblGap);
+    ctx.fillText('MISSES',col2,y+lblGap);
+    y+=rowGap*0.7;
     
     // Dot replay
-    const dotR2=5;const dotGap2=4;
+    const dotR2=Math.max(3,u*0.007);
+    const dotGap2=Math.max(2,u*0.005);
     const dotTotalW2=TOTAL*(dotR2*2+dotGap2)-dotGap2;
     const dotStartX2=(W-dotTotalW2)/2;
-    const dotY2=H*0.82;
     for(let i=0;i<TOTAL;i++){
       const dx2=dotStartX2+i*(dotR2*2+dotGap2)+dotR2;
-      ctx.beginPath();ctx.arc(dx2,dotY2,dotR2,0,Math.PI*2);
+      ctx.beginPath();ctx.arc(dx2,y,dotR2,0,Math.PI*2);
       ctx.fillStyle=i<resultLog.length?DOT_COLORS[resultLog[i]]:'rgba(255,255,255,0.1)';
       ctx.fill();
     }
-    ctx.font=Math.round(W*0.032)+'px -apple-system,sans-serif';
+    y+=u*0.03;
+    ctx.font=Math.round(u*0.024)+'px -apple-system,sans-serif';
     ctx.fillStyle='rgba(255,255,255,0.35)';
-    ctx.fillText('Each dot = one circle',W/2,dotY2+16);
+    ctx.fillText('Each dot = one circle',W/2,y);
     
-    const btnGap=12;
-    const btnTotalW=W*0.82;
+    // Buttons — position from bottom
+    const bh=Math.max(44,u*0.07);
+    const btnGap=10;
+    const btnTotalW=Math.min(W*0.82,420);
     const playW=btnTotalW*0.55;
     const shareW=btnTotalW-playW-btnGap;
-    const bh=54;
     const bxStart=(W-btnTotalW)/2;
-    const by=H*0.9;
+    const by=H-bh-Math.max(16,u*0.03);
     
     // Play Again
     btnRect={x:bxStart,y:by,w:playW,h:bh};
     ctx.fillStyle='#4d96ff';
     drawRoundRect(bxStart,by,playW,bh,bh/2);ctx.fill();
     ctx.fillStyle='#ffffff';
-    ctx.font='bold '+Math.round(W*0.042)+'px -apple-system,sans-serif';
+    ctx.font='bold '+Math.round(u*0.036)+'px -apple-system,sans-serif';
     ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText('Play Again',bxStart+playW/2,by+bh/2);
     
@@ -769,7 +792,7 @@ function draw(now){
     ctx.fillStyle=isCopied?'#6bcb77':'rgba(255,255,255,0.15)';
     drawRoundRect(sx,by,shareW,bh,bh/2);ctx.fill();
     ctx.fillStyle='#ffffff';
-    ctx.font='bold '+Math.round(W*0.042)+'px -apple-system,sans-serif';
+    ctx.font='bold '+Math.round(u*0.036)+'px -apple-system,sans-serif';
     ctx.fillText(isCopied?'Copied!':'Share',sx+shareW/2,by+bh/2);
   }
   
