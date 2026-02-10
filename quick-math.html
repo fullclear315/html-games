@@ -1,0 +1,851 @@
+<!--
+  Game: Quick Math
+  Mechanic: Solve missing-number equations by tapping one of four answers. Adaptive difficulty.
+  Target time: 30-70 seconds
+  Scoring: Speed × difficulty multiplier. 3 strikes = game over. High score = ramp fast + stay accurate.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Quick Math</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+canvas{display:block;position:absolute;top:0;left:0}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+'use strict';
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const FONT = '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+const TOTAL_ROUNDS = 20;
+const BASE_PTS = 500;
+const TIME_LIMIT = 4000;
+const MAX_LIVES = 3;
+const DIFF_MULT = [1, 1.5, 2, 3];
+
+const BG = '#1a1025';
+const BG2 = '#231535';
+const ACC = '#c084fc';
+const ACC2 = '#a855f7';
+const GOLD = '#ffd93d';
+const GREEN = '#6bcb77';
+const RED = '#ff6b6b';
+const ORANGE = '#fb923c';
+const WHITE = '#f5f0ff';
+const DIM = '#8b7fa8';
+const BTN_BG = '#2d1f45';
+const BTN_BORDER = '#4c3570';
+const BTN_CORRECT = '#166534';
+const BTN_WRONG = '#991b1b';
+
+let W, H, dpr, VW, VH, VX, VY, u;
+const MAX_ASPECT = 9 / 16;
+
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const rw = window.innerWidth, rh = window.innerHeight;
+  canvas.width = rw * dpr; canvas.height = rh * dpr;
+  canvas.style.width = rw + 'px'; canvas.style.height = rh + 'px';
+  if (rw / rh > MAX_ASPECT) {
+    VW = Math.round(rh * MAX_ASPECT); VH = rh;
+    VX = Math.round((rw - VW) / 2); VY = 0;
+  } else { VW = rw; VH = rh; VX = 0; VY = 0; }
+  W = VW; H = VH; u = Math.min(W, H);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', resize); resize();
+
+// ── Audio ──
+let audioCtx = null;
+function initAudio() { if (audioCtx) return; try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+function playTone(freq, dur, vol, type) {
+  if (!audioCtx) return;
+  try {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    g.gain.setValueAtTime(vol || 0.12, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (dur || 0.15));
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + (dur || 0.15));
+  } catch (e) {}
+}
+function playCorrect(stk) { const b = 520 + Math.min(stk, 10) * 30; playTone(b, 0.12, 0.12); setTimeout(() => playTone(b * 1.25, 0.1, 0.10), 60); }
+function playWrong() { playTone(200, 0.2, 0.12, 'sawtooth'); setTimeout(() => playTone(160, 0.25, 0.10, 'sawtooth'), 80); }
+function playCountdown() { playTone(440, 0.08, 0.08); }
+function playGo() { playTone(660, 0.15, 0.12); setTimeout(() => playTone(880, 0.12, 0.10), 80); }
+function playStreak(n) { for (let i = 0; i < Math.min(n, 5); i++) setTimeout(() => playTone(600 + i * 80, 0.06, 0.08), i * 40); }
+function playGameOver() { [392, 330, 294, 262].forEach((f, i) => setTimeout(() => playTone(f, 0.35, 0.12, 'triangle'), i * 150)); }
+function playWin() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => playTone(f, 0.3, 0.10), i * 120)); }
+function playLifeLost() { playTone(250, 0.15, 0.12, 'sawtooth'); setTimeout(() => playTone(200, 0.2, 0.10, 'sawtooth'), 100); setTimeout(() => playTone(150, 0.3, 0.10, 'sawtooth'), 220); }
+function vib(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+
+// ── State ──
+let state = 'title';
+let round = 0, score = 0, streak = 0, maxStreak = 0, lives = MAX_LIVES;
+let results = [];
+let equation = null, roundStartTime = 0, feedbackTimer = 0, feedbackResult = null;
+let countdownVal = 3, countdownTimer = 0;
+let shakeX = 0, shakeY = 0;
+let floatingTexts = [], milestoneText = '', milestoneAlpha = 0;
+let timeBarPct = 1, animFrame = 0, btnRects = [];
+let diffLevel = 0, maxDiffLevel = 0;
+const DIFF_NAMES = ['Easy', 'Medium', 'Hard', 'Expert'];
+const DIFF_COLORS_MAP = [GREEN, ACC, ORANGE, RED];
+let gameStartTime = 0;
+
+// Visual feedback systems
+let particles = [];
+let rings = [];
+let flashAlpha = 0, flashColor = WHITE;
+let displayScore = 0; // animated score counter
+let scorePop = 0; // scale bounce for score display
+
+// Visual feedback systems
+function spawnParticles(x, y, count, color, spread, speed) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const vel = (0.5 + Math.random()) * speed;
+    const size = 2 + Math.random() * 3;
+    particles.push({
+      x, y, vx: Math.cos(angle) * vel, vy: Math.sin(angle) * vel - 1,
+      alpha: 1, size, color, gravity: 0.08 + Math.random() * 0.04
+    });
+  }
+}
+function spawnRing(x, y, color, maxR, width) {
+  rings.push({ x, y, r: 0, maxR, alpha: 0.8, color, width: width || 2, speed: maxR / 20 });
+}
+function spawnScoreFeedback(pts, tier, dl) {
+  const cx = W / 2, cy = H * 0.38;
+  const intensity = pts / 1500; // 0..1 roughly, can exceed 1 for mega scores
+  const colors = { fast: GOLD, ok: GREEN, slow: ORANGE };
+  const c = colors[tier] || GREEN;
+
+  // Particles: more for higher value
+  const pCount = Math.round(4 + intensity * 20);
+  const pSpeed = 1.5 + intensity * 4;
+  spawnParticles(cx, cy, pCount, c, 1, pSpeed);
+  // Extra gold sparkles for Expert fast
+  if (dl >= 2 && tier === 'fast') {
+    spawnParticles(cx, cy, 8, WHITE, 1, pSpeed * 0.7);
+  }
+
+  // Rings: scale with value
+  spawnRing(cx, cy, c, u * (0.08 + intensity * 0.2), 2 + intensity * 3);
+  if (intensity > 0.5) spawnRing(cx, cy, c, u * (0.12 + intensity * 0.15), 1.5);
+  if (intensity > 0.8) spawnRing(cx, cy, WHITE, u * 0.2, 1);
+
+  // Screen flash
+  flashColor = c;
+  flashAlpha = Math.min(0.12 + intensity * 0.15, 0.3);
+
+  // Score counter pop
+  scorePop = 0.15 + intensity * 0.25;
+}
+function playBigScore(pts) {
+  // Extra satisfying chord for high-value answers
+  if (pts >= 800) {
+    playTone(523, 0.08, 0.06); // C
+    setTimeout(() => playTone(659, 0.08, 0.06), 30); // E
+    setTimeout(() => playTone(784, 0.12, 0.08), 60); // G
+  }
+  if (pts >= 1200) {
+    setTimeout(() => playTone(1047, 0.15, 0.07), 90); // high C
+  }
+}
+
+// ── Equation generation ──
+function genEquation() {
+  let a, b, answer, op;
+  const dl = diffLevel;
+  if (dl === 0) {
+    // Easy: simple add/sub, numbers ≤ 15
+    if (Math.random() < 0.6) { answer = randInt(5, 15); a = randInt(2, answer - 2); b = answer - a; op = '+'; }
+    else { a = randInt(8, 18); b = randInt(2, a - 2); answer = a - b; op = '-'; }
+  } else if (dl === 1) {
+    // Medium: add/sub to 40, basic times tables (one factor ≤ 9, product ≥ 15)
+    const r = Math.random();
+    if (r < 0.3) { answer = randInt(15, 40); a = randInt(4, answer - 4); b = answer - a; op = '+'; }
+    else if (r < 0.6) { a = randInt(18, 45); b = randInt(4, a - 4); answer = a - b; op = '-'; }
+    else { a = randInt(3, 9); b = randInt(Math.max(3, Math.ceil(15 / a)), 9); answer = a * b; op = '*'; }
+  } else if (dl === 2) {
+    // Hard: bigger add/sub, mult with at least one large factor (≥7, other ≥6), division
+    const r = Math.random();
+    if (r < 0.2) { answer = randInt(35, 80); a = randInt(10, answer - 10); b = answer - a; op = '+'; }
+    else if (r < 0.4) { a = randInt(40, 90); b = randInt(10, a - 10); answer = a - b; op = '-'; }
+    else if (r < 0.75) { a = randInt(7, 12); b = randInt(6, 12); answer = a * b; op = '*'; }
+    else { b = randInt(4, 9); answer = randInt(4, 12); a = b * answer; op = '/'; }
+  } else {
+    // Expert: large numbers everywhere, multi-digit mult, harder division
+    const r = Math.random();
+    if (r < 0.15) { answer = randInt(60, 150); a = randInt(15, answer - 15); b = answer - a; op = '+'; }
+    else if (r < 0.3) { a = randInt(70, 150); b = randInt(15, a - 15); answer = a - b; op = '-'; }
+    else if (r < 0.65) { a = randInt(9, 19); b = randInt(7, 15); answer = a * b; op = '*'; }
+    else { b = randInt(5, 15); answer = randInt(5, 15); a = b * answer; op = '/'; }
+  }
+
+  const opDisplay = { '+': '+', '-': '−', '*': '×', '/': '÷' }[op];
+  function compute() {
+    if (op === '+') return a + b; if (op === '-') return a - b;
+    if (op === '*') return a * b; return answer;
+  }
+
+  const pos = dl === 0 ? 2 : (Math.random() < 0.35 ? randInt(0, 2) : 2);
+  let hidden, dp;
+  const res = compute();
+  if (pos === 0) { hidden = a; dp = ['?', opDisplay, b, '=', res]; }
+  else if (pos === 1) { hidden = b; dp = [a, opDisplay, '?', '=', res]; }
+  else { hidden = res; dp = [a, opDisplay, b, '=', '?']; }
+
+  const display = dp.join(' ');
+  let options = [hidden]; const nearby = new Set([hidden]); let att = 0;
+  const baseSpread = dl === 0 ? 4 : dl === 1 ? 3 : 2;
+  while (options.length < 4 && att < 100) {
+    const spread = Math.max(baseSpread, Math.ceil(Math.abs(hidden) * 0.25));
+    let wrong = hidden + randInt(-spread, spread);
+    if (wrong < 0) wrong = Math.abs(wrong) + randInt(0, 2);
+    if (wrong === hidden || nearby.has(wrong)) { att++; continue; }
+    nearby.add(wrong); options.push(wrong); att++;
+  }
+  while (options.length < 4) { const w = hidden + options.length * 2 + 1; options.push(nearby.has(w) ? hidden + options.length * 3 + 7 : w); }
+  shuffle(options);
+  return { display, answer: hidden, options, correctIdx: options.indexOf(hidden) };
+}
+function randInt(a, b) { return Math.floor(rng() * (b - a + 1)) + a; }
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = randInt(0, i);[a[i], a[j]] = [a[j], a[i]]; } }
+
+// ── Seeded PRNG ──
+let gameSeed = 0;
+let rng = Math.random; // default, swapped to seeded before genEquation
+
+function mulberry32(seed) {
+  let s = seed | 0;
+  return function() {
+    s = (s + 0x6D2B79F5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function hashSeed(seed, round, diff) {
+  // Combine seed + round + diff into a unique integer
+  let h = seed ^ (round * 2654435761) ^ (diff * 40503);
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+  h = Math.imul(h ^ (h >>> 13), 0x45d9f3b);
+  return (h ^ (h >>> 16)) >>> 0;
+}
+
+function seedForRound(round, diff) {
+  rng = mulberry32(hashSeed(gameSeed, round, diff));
+}
+
+function newSeed() { return (Math.random() * 0xFFFFFFFF) >>> 0; }
+function seedToCode(s) { return s.toString(36).slice(0, 6).padStart(6, '0'); }
+function codeToSeed(c) { return parseInt(c, 36) || 0; }
+
+function getUrlSeed() {
+  try {
+    const p = new URLSearchParams(window.location.search);
+    const s = p.get('s');
+    if (s) return codeToSeed(s);
+  } catch (e) {}
+  return null;
+}
+let urlSeed = getUrlSeed();
+
+// ── Game flow ──
+function startGame() {
+  round = 0; score = 0; streak = 0; maxStreak = 0; lives = MAX_LIVES;
+  results = []; floatingTexts = [];
+  particles = []; rings = [];
+  flashAlpha = 0; displayScore = 0; scorePop = 0;
+  milestoneText = ''; milestoneAlpha = 0;
+  diffLevel = 0; maxDiffLevel = 0; gameStartTime = 0;
+  gameSeed = urlSeed !== null ? urlSeed : newSeed();
+  state = 'countdown'; countdownVal = 3; countdownTimer = performance.now();
+}
+function startRound() {
+  seedForRound(round, diffLevel);
+  equation = genEquation();
+  rng = Math.random; // restore unseeded for non-equation randomness
+  roundStartTime = performance.now();
+  if (!gameStartTime) gameStartTime = roundStartTime;
+  feedbackResult = null; timeBarPct = 1; state = 'playing';
+}
+
+function updateDifficulty() {
+  const last = results[results.length - 1];
+  const prev = diffLevel;
+
+  // Immediate downgrade on any miss
+  if (!last.correct) {
+    diffLevel = Math.max(0, diffLevel - 1);
+  } else {
+    // Check last 3 for level up / down
+    const recent = results.slice(-3);
+    if (recent.length >= 3 && recent.every(r => r.correct)) {
+      const avgTime = recent.reduce((s, r) => s + r.time, 0) / 3;
+      const tt = TIER_THRESHOLDS[diffLevel];
+      if (avgTime < tt[0]) {
+        // All blazing → jump 2 tiers
+        diffLevel = Math.min(3, diffLevel + 2);
+      } else if (avgTime < tt[1]) {
+        // All fast/ok → level up
+        diffLevel = Math.min(3, diffLevel + 1);
+      } else {
+        // All correct but all slow → level down
+        diffLevel = Math.max(0, diffLevel - 1);
+      }
+    }
+  }
+
+  if (diffLevel !== prev) {
+    if (diffLevel > prev) { if (diffLevel > maxDiffLevel) maxDiffLevel = diffLevel; showMilestone('📈 ' + DIFF_NAMES[diffLevel] + '!'); }
+    else showMilestone('📉 ' + DIFF_NAMES[diffLevel]);
+  }
+}
+
+// Speed thresholds per difficulty [blazing, ok] — harder = more forgiving
+const TIER_THRESHOLDS = [
+  [1000, 2500],  // Easy
+  [1200, 2800],  // Medium
+  [1500, 3200],  // Hard
+  [1800, 3500],  // Expert
+];
+function getTier(ms, dl) {
+  const t = TIER_THRESHOLDS[dl !== undefined ? dl : diffLevel];
+  return ms < t[0] ? 'fast' : ms < t[1] ? 'ok' : 'slow';
+}
+
+function handleAnswer(idx) {
+  if (state !== 'playing') return;
+  const elapsed = performance.now() - roundStartTime;
+  const correct = idx === equation.correctIdx;
+  let pts = 0;
+  const floatY = H * 0.46;
+
+  if (correct) {
+    // Score anchored to tier thresholds — same tier = similar % of max
+    const t = Math.min(elapsed, TIME_LIMIT);
+    const tt = TIER_THRESHOLDS[diffLevel];
+    let pct;
+    if (t <= tt[0]) {
+      // Blazing zone: 100% → 70%
+      pct = 1.0 - 0.3 * (t / tt[0]);
+    } else if (t <= tt[1]) {
+      // OK zone: 70% → 30%
+      pct = 0.7 - 0.4 * ((t - tt[0]) / (tt[1] - tt[0]));
+    } else {
+      // Slow zone: 30% → 10%
+      pct = 0.3 - 0.2 * ((t - tt[1]) / (TIME_LIMIT - tt[1]));
+    }
+    pts = Math.max(Math.round(BASE_PTS * Math.max(pct, 0.1) * DIFF_MULT[diffLevel]), 50);
+    score += pts; streak++;
+    if (streak > maxStreak) maxStreak = streak;
+    playCorrect(streak); vib(12);
+    if (streak === 5) { showMilestone('🔥 5 Streak!'); playStreak(5); vib([15, 30, 15]); }
+    else if (streak === 10) { showMilestone('⚡ 10 Streak!'); playStreak(10); vib([15, 20, 15, 20, 25]); }
+    else if (streak === 15) { showMilestone('💎 15 Streak!'); playStreak(15); vib([15, 15, 15, 15, 15, 15, 25]); }
+    else if (streak === 20) { showMilestone('👑 PERFECT!'); playStreak(20); vib([20, 20, 20, 20, 30]); }
+
+    const tier = getTier(elapsed);
+    const labels = { fast: 'BLAZING!', ok: 'GOOD', slow: 'Slow...' };
+    const colors = { fast: GOLD, ok: GREEN, slow: ORANGE };
+    floatingTexts.push({ text: '+' + pts, color: colors[tier], x: W / 2, y: floatY, alpha: 1, vy: -2.5, size: 0.07, scale: 1.4 });
+    floatingTexts.push({ text: labels[tier], color: colors[tier], x: W / 2, y: floatY - u * 0.08, alpha: 1, vy: -3, size: 0.05 });
+    if (diffLevel >= 2) floatingTexts.push({ text: DIFF_MULT[diffLevel] + '×', color: colors[tier], x: W / 2 + u * 0.14, y: floatY, alpha: 1, vy: -2.5, size: 0.04, scale: 1.3 });
+    spawnScoreFeedback(pts, tier, diffLevel);
+    playBigScore(pts);
+    results.push({ correct: true, time: elapsed, pts, diff: diffLevel, tier });
+  } else {
+    streak = 0; lives--;
+    playLifeLost(); vib([30, 50, 40]); shakeX = 10;
+    floatingTexts.push({ text: '✕', color: RED, x: W / 2, y: floatY, alpha: 1, vy: -2, size: 0.09 });
+    if (lives > 0) floatingTexts.push({ text: lives + ' left', color: RED, x: W / 2, y: floatY - u * 0.09, alpha: 1, vy: -2.5, size: 0.04 });
+    else floatingTexts.push({ text: 'GAME OVER', color: RED, x: W / 2, y: floatY - u * 0.09, alpha: 1, vy: -2.5, size: 0.055 });
+    results.push({ correct: false, time: elapsed, pts: 0, diff: diffLevel, tier: 'miss' });
+  }
+
+  feedbackResult = { correct, chosenIdx: idx, time: elapsed, pts };
+  updateDifficulty();
+  if (milestoneAlpha <= 0 && round === Math.floor(TOTAL_ROUNDS / 2) - 1 && lives > 0) showMilestone('Halfway!');
+  state = 'feedback'; feedbackTimer = performance.now();
+}
+
+function handleTimeout() {
+  streak = 0; lives--;
+  playLifeLost(); vib([30, 50, 40]); shakeX = 8;
+  const floatY = H * 0.46;
+  floatingTexts.push({ text: '✕ TIME', color: RED, x: W / 2, y: floatY, alpha: 1, vy: -2, size: 0.08 });
+  if (lives > 0) floatingTexts.push({ text: lives + ' left', color: RED, x: W / 2, y: floatY - u * 0.09, alpha: 1, vy: -2.5, size: 0.04 });
+  else floatingTexts.push({ text: 'GAME OVER', color: RED, x: W / 2, y: floatY - u * 0.09, alpha: 1, vy: -2.5, size: 0.055 });
+  feedbackResult = { correct: false, chosenIdx: -1, time: TIME_LIMIT, pts: 0 };
+  results.push({ correct: false, time: TIME_LIMIT, pts: 0, diff: diffLevel, tier: 'miss' });
+  updateDifficulty();
+  state = 'feedback'; feedbackTimer = performance.now();
+}
+
+function endGame() {
+  displayScore = score; // snap counter
+  const elapsed = gameStartTime ? (performance.now() - gameStartTime) / 1000 : 0;
+  if (lives <= 0) playGameOver(); else playWin();
+  vib([30, 40, 30, 40, 60]); state = 'gameover';
+  window.dispatchEvent(new CustomEvent('gameComplete', { detail: { score, maxScore: null, duration: Math.round(elapsed), won: lives > 0 } }));
+}
+
+function showMilestone(text) { milestoneText = text; milestoneAlpha = 1; }
+
+// ── Grading ──
+function getGrade(s) {
+  if (s >= 22000) return '🧠 Big Brain';
+  if (s >= 18000) return '⚡ Lightning';
+  if (s >= 15000) return '🔥 On Fire';
+  if (s >= 12500) return '💪 Beast Mode';
+  if (s >= 10500) return '🎯 Sharp';
+  if (s >= 8500) return '✅ Solid';
+  if (s >= 7000) return '👍 Not Bad';
+  if (s >= 5500) return '😅 Warming Up';
+  if (s >= 4000) return '🐌 Sleepy';
+  if (s >= 3000) return '🫠 Melting';
+  if (s >= 2000) return '💀 Rough';
+  if (s >= 1200) return '🪦 RIP';
+  if (s >= 600) return '🥔 Potato';
+  return '🫥 AFK';
+}
+function gradeColor(g) {
+  if (g.includes('Brain') || g.includes('Lightning')) return GOLD;
+  if (g.includes('Fire') || g.includes('Beast')) return GREEN;
+  if (g.includes('Sharp') || g.includes('Solid')) return ACC;
+  if (g.includes('Not Bad') || g.includes('Warming')) return ORANGE;
+  return RED;
+}
+
+// ── Drawing helpers ──
+function fillText(text, x, y, size, color, align, weight) {
+  ctx.font = (weight || '600') + ' ' + size + 'px ' + FONT;
+  ctx.fillStyle = color || WHITE; ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y);
+}
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r); ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r); ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
+}
+
+// ── Dot rendering (color-pop style) ──
+function drawDiamond(x, y, r) {
+  ctx.beginPath(); ctx.moveTo(x, y - r * 1.3); ctx.lineTo(x + r, y);
+  ctx.lineTo(x, y + r * 1.3); ctx.lineTo(x - r, y); ctx.closePath();
+}
+function drawCross(x, y, r) {
+  const t = r * 0.35;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI / 4);
+  ctx.fillRect(-t, -r, t * 2, r * 2);
+  ctx.fillRect(-r, -t, r * 2, t * 2);
+  ctx.restore();
+}
+function drawResultDot(x, y, r, tier) {
+  if (tier === 'fast') {
+    ctx.fillStyle = GOLD; drawDiamond(x, y, r * 1.15); ctx.fill();
+    ctx.fillStyle = 'rgba(255,217,61,0.3)'; drawDiamond(x, y, r * 1.6); ctx.fill();
+  } else if (tier === 'ok') {
+    ctx.fillStyle = GREEN; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  } else if (tier === 'slow') {
+    ctx.fillStyle = ORANGE; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  } else if (tier === 'miss') {
+    ctx.fillStyle = RED; drawCross(x, y, r * 1.2);
+  } else {
+    ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+// ── Draw: Title ──
+function drawTitle() {
+  const cx = W / 2, titleFS = u * 0.11, subFS = u * 0.04, ctaFS = u * 0.045;
+  const totalH = titleFS * 2 + u * 0.04 + subFS * 4 + u * 0.06 + u * 0.14;
+  let y = (H - totalH) / 2;
+  fillText('🧮', cx, y, titleFS * 0.9, WHITE, 'center', '400'); y += titleFS;
+  fillText('Quick Math', cx, y, titleFS, WHITE, 'center', '800'); y += titleFS + u * 0.04;
+  fillText('Solve the equation · Tap the answer', cx, y, subFS, DIM); y += subFS + u * 0.015;
+  fillText('+ − × ÷  Adapts to your speed!', cx, y, subFS, ACC); y += subFS + u * 0.015;
+  fillText('3 mistakes and you\'re out', cx, y, subFS, RED); y += subFS + u * 0.015;
+  fillText('Higher difficulty = more points', cx, y, subFS, DIM); y += subFS + u * 0.015;
+  if (urlSeed !== null) {
+    fillText('⚔️ Challenge #' + seedToCode(urlSeed), cx, y, subFS, GOLD); y += subFS + u * 0.065;
+  } else { y += u * 0.065; }
+  const btnW = Math.min(W * 0.6, 260), btnH = u * 0.13, bx = cx - btnW / 2;
+  roundRect(bx, y - btnH / 2, btnW, btnH, btnH / 2); ctx.fillStyle = ACC2; ctx.fill();
+  fillText('TAP TO START', cx, y, ctaFS, WHITE, 'center', '700');
+  const pulse = 0.7 + 0.3 * Math.sin(animFrame * 0.04);
+  ctx.globalAlpha = pulse * 0.3;
+  roundRect(bx - 3, y - btnH / 2 - 3, btnW + 6, btnH + 6, btnH / 2 + 3);
+  ctx.strokeStyle = ACC; ctx.lineWidth = 2; ctx.stroke(); ctx.globalAlpha = 1;
+}
+
+// ── Draw: Countdown ──
+function drawCountdown() {
+  const cx = W / 2, cy = H / 2, fs = u * 0.2;
+  const text = countdownVal > 0 ? countdownVal.toString() : 'GO!';
+  const color = countdownVal > 0 ? WHITE : GREEN;
+  const scale = 1 + 0.15 * Math.max(0, 1 - (performance.now() - countdownTimer) / 300);
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(scale, scale);
+  fillText(text, 0, 0, fs, color, 'center', '800'); ctx.restore();
+}
+
+// ── Draw: Playing ──
+function drawPlaying() {
+  const cx = W / 2, safePad = u * 0.035;
+  const now = performance.now(), elapsed = now - roundStartTime;
+  timeBarPct = Math.max(0, 1 - elapsed / TIME_LIMIT);
+
+  // ── Bottom dock (score + streak) ──
+  const dockH = u * 0.09;
+  const dockY = H - dockH;
+  // Subtle separator
+  ctx.fillStyle = '#0d0818';
+  ctx.fillRect(0, dockY, W, dockH);
+  ctx.fillStyle = '#2a1a40';
+  ctx.fillRect(safePad, dockY, W - safePad * 2, 1);
+
+  // Score left (animated counter with pop)
+  const scoreFS = u * 0.048;
+  const sp = 1 + scorePop;
+  const scoreY = dockY + dockH / 2;
+  const scoreStr = Math.round(displayScore).toString();
+  const scoreTextW = scoreStr.length * scoreFS * 0.6; // approximate width
+  ctx.save(); ctx.translate(safePad + u * 0.02, scoreY);
+  if (sp > 1.01) ctx.scale(sp, sp);
+  fillText(scoreStr, 0, 0, scoreFS, ACC, 'left', '800');
+  ctx.restore();
+  fillText('pts', safePad + u * 0.02 + scoreTextW + u * 0.01, scoreY, u * 0.028, DIM, 'left', '600');
+
+  // Streak right
+  if (streak > 1) {
+    fillText('🔥' + streak, W - safePad - u * 0.02, scoreY, u * 0.04, GOLD, 'right', '700');
+  }
+
+  // ── Top HUD: round counter + hearts only ──
+  let y = safePad + u * 0.02;
+  fillText(`${round + 1}/${TOTAL_ROUNDS}`, cx, y, u * 0.038, DIM);
+
+  // Lives (hearts) on right
+  const hs = u * 0.02;
+  for (let i = 0; i < MAX_LIVES; i++) {
+    const hx = W - safePad - (MAX_LIVES - i) * (hs * 3.2);
+    if (i < lives) {
+      ctx.fillStyle = RED;
+      ctx.beginPath();
+      ctx.arc(hx - hs * 0.52, y - hs * 0.25, hs * 0.6, Math.PI, 0);
+      ctx.arc(hx + hs * 0.52, y - hs * 0.25, hs * 0.6, Math.PI, 0);
+      ctx.lineTo(hx, y + hs * 0.95); ctx.closePath(); ctx.fill();
+    } else {
+      ctx.strokeStyle = '#4a3060'; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(hx - hs * 0.52, y - hs * 0.25, hs * 0.6, Math.PI, 0);
+      ctx.arc(hx + hs * 0.52, y - hs * 0.25, hs * 0.6, Math.PI, 0);
+      ctx.lineTo(hx, y + hs * 0.95); ctx.closePath(); ctx.stroke();
+    }
+  }
+
+  y += u * 0.04;
+
+  // Time bar
+  const barW = Math.min(W * 0.85, 400), barH = Math.max(H * 0.01, 4), bx = cx - barW / 2;
+  ctx.fillStyle = '#1a1025'; roundRect(bx, y, barW, barH, barH / 2); ctx.fill();
+  if (timeBarPct > 0) {
+    // Color matches speed tiers for current difficulty
+    const tt = TIER_THRESHOLDS[diffLevel];
+    const bc = elapsed < tt[0] ? GOLD : elapsed < tt[1] ? GREEN : elapsed < (tt[1] + TIME_LIMIT) / 2 ? ORANGE : RED;
+    roundRect(bx, y, barW * timeBarPct, barH, barH / 2); ctx.fillStyle = bc; ctx.fill();
+  }
+  y += barH + H * 0.015;
+
+  // Progress dots
+  const totalDots = TOTAL_ROUNDS;
+  const maxDotsW = Math.min(W * 0.82, 380);
+  const dotGap = maxDotsW / totalDots;
+  const dotStartX = cx - (totalDots * dotGap) / 2;
+  const dotR = Math.max(Math.min(dotGap * 0.3, 4), 2);
+  for (let i = 0; i < totalDots; i++) {
+    const dx = dotStartX + i * dotGap + dotGap / 2;
+    if (i < results.length) {
+      drawResultDot(dx, y, dotR, results[i].tier);
+    } else if (i === results.length) {
+      ctx.fillStyle = WHITE; ctx.beginPath(); ctx.arc(dx, y, dotR, 0, Math.PI * 2); ctx.fill();
+    } else {
+      ctx.fillStyle = '#3a2855'; ctx.beginPath(); ctx.arc(dx, y, dotR, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  y += u * 0.04;
+
+  // Equation
+  const eqFS = u * 0.095;
+  const eqY = y + (H * 0.20) / 2;
+  fillText(equation.display, cx, eqY, eqFS, WHITE, 'center', '700');
+  const diff = DIFF_NAMES[diffLevel], diffCol = DIFF_COLORS_MAP[diffLevel];
+  const multTxt = DIFF_MULT[diffLevel] > 1 ? '  ' + DIFF_MULT[diffLevel] + '×' : '';
+  fillText(diff + multTxt, cx, eqY - eqFS * 0.8, u * 0.032, diffCol, 'center', '600');
+
+  // Answer buttons (2×2) — ends above dock
+  const btnAreaTop = H * 0.56, btnAreaBottom = dockY - u * 0.03;
+  const btnTotalW = Math.min(W * 0.85, 400), btnGapV = u * 0.025;
+  const bw = (btnTotalW - btnGapV) / 2;
+  const bh = Math.min((btnAreaBottom - btnAreaTop - btnGapV) / 2, u * 0.16);
+  const bStartX = cx - btnTotalW / 2, bStartY = btnAreaTop;
+
+  btnRects = [];
+  for (let i = 0; i < 4; i++) {
+    const col = i % 2, row = Math.floor(i / 2);
+    const rx = bStartX + col * (bw + btnGapV), ry = bStartY + row * (bh + btnGapV);
+    let bg = BTN_BG, border = BTN_BORDER;
+    if (state === 'feedback' && feedbackResult) {
+      if (i === equation.correctIdx) { bg = BTN_CORRECT; border = GREEN; }
+      else if (i === feedbackResult.chosenIdx && !feedbackResult.correct) { bg = BTN_WRONG; border = RED; }
+      else ctx.globalAlpha = 0.4;
+    }
+    roundRect(rx, ry, bw, bh, u * 0.02); ctx.fillStyle = bg; ctx.fill();
+    ctx.strokeStyle = border; ctx.lineWidth = 2; ctx.stroke(); ctx.globalAlpha = 1;
+    fillText(equation.options[i].toString(), rx + bw / 2, ry + bh / 2, u * 0.065, WHITE, 'center', '700');
+    btnRects.push({ x: rx, y: ry, w: bw, h: bh, idx: i });
+  }
+}
+
+// ── Draw: Game Over ──
+function drawGameOver() {
+  const cx = W / 2, grade = getGrade(score), gc = gradeColor(grade);
+  const correct = results.filter(r => r.correct).length;
+  const cR = results.filter(r => r.correct);
+  const avgTime = cR.length ? Math.round(cR.reduce((s, r) => s + r.time, 0) / cR.length) : 0;
+  const topY = Math.max(24, H * 0.05);
+  const bottomBtnY = H - u * 0.1 - u * 0.13;
+  let y = topY + u * 0.02;
+  const gap = Math.min((bottomBtnY - topY) * 0.04, u * 0.038);
+
+  if (lives <= 0) {
+    fillText('ELIMINATED', cx, y + u * 0.02, u * 0.045, RED, 'center', '700');
+    y += u * 0.06 + gap * 0.5;
+  }
+
+  const gradeFS = grade.length > 10 ? u * 0.06 : grade.length > 6 ? u * 0.075 : u * 0.09;
+  fillText(grade, cx, y + gradeFS / 2, gradeFS, gc, 'center', '800');
+  y += gradeFS + gap;
+
+  fillText(score.toString(), cx, y + u * 0.06, u * 0.14, WHITE, 'center', '800');
+  y += u * 0.14 + gap * 0.3;
+  fillText('points', cx, y, u * 0.035, DIM);
+  y += u * 0.035 + gap * 0.3;
+  fillText('#' + seedToCode(gameSeed), cx, y, u * 0.025, DIM); y += u * 0.025 + gap;
+
+  const stats = [
+    { label: 'SOLVED', value: correct.toString(), color: correct >= results.length - 1 ? GREEN : correct >= results.length * 0.7 ? ACC : ORANGE },
+    { label: 'AVG TIME', value: avgTime > 0 ? avgTime + 'ms' : '—', color: avgTime < 1000 ? GREEN : avgTime < 2000 ? ACC : ORANGE },
+    { label: 'STREAK', value: maxStreak.toString(), color: maxStreak >= 10 ? GOLD : maxStreak >= 5 ? GREEN : ACC },
+    { label: 'PEAK DIFF', value: DIFF_NAMES[maxDiffLevel], color: DIFF_COLORS_MAP[maxDiffLevel] },
+  ];
+  const gridW = Math.min(W * 0.85, 380), colW = gridW / 2, gx = cx - gridW / 2;
+  for (let i = 0; i < stats.length; i++) {
+    const col = i % 2, row = Math.floor(i / 2);
+    const rowH = u * 0.09 + gap;
+    const sx = gx + col * colW + colW / 2, sy = y + row * rowH;
+    fillText(stats[i].value, sx, sy, u * 0.055, stats[i].color, 'center', '700');
+    fillText(stats[i].label, sx, sy + u * 0.048, u * 0.026, DIM, 'center', '600');
+  }
+  y += 2 * (u * 0.09 + gap) + gap * 0.5;
+
+  // Progress dots
+  const cnt = results.length;
+  const maxDotsW = Math.min(W * 0.82, 380);
+  const dg = cnt > 0 ? maxDotsW / cnt : maxDotsW;
+  const dsx = cx - (cnt * dg) / 2;
+  const dr = Math.max(Math.min(dg * 0.3, 5), 2.5);
+  for (let i = 0; i < cnt; i++) drawResultDot(dsx + i * dg + dg / 2, y, dr, results[i].tier);
+
+  // Buttons
+  const btnW = Math.min(W * 0.38, 180), btnH = u * 0.12, bg2 = u * 0.03;
+  const totalBtnW = btnW * 2 + bg2, lx = cx - totalBtnW / 2, by = bottomBtnY;
+  roundRect(lx, by, btnW, btnH, btnH / 2); ctx.fillStyle = ACC2; ctx.fill();
+  fillText('Play Again', lx + btnW / 2, by + btnH / 2, u * 0.038, WHITE, 'center', '700');
+  roundRect(lx + btnW + bg2, by, btnW, btnH, btnH / 2); ctx.fillStyle = BTN_BG; ctx.fill();
+  ctx.strokeStyle = BTN_BORDER; ctx.lineWidth = 2; ctx.stroke();
+  fillText('Share', lx + btnW + bg2 + btnW / 2, by + btnH / 2, u * 0.038, ACC, 'center', '700');
+  btnRects = [
+    { x: lx, y: by, w: btnW, h: btnH, action: 'again' },
+    { x: lx + btnW + bg2, y: by, w: btnW, h: btnH, action: 'share' }
+  ];
+}
+
+// ── Sharing ──
+function shareResults() {
+  const grade = getGrade(score);
+  const correct = results.filter(r => r.correct).length;
+  const cR = results.filter(r => r.correct);
+  const avgTime = cR.length ? Math.round(cR.reduce((s, r) => s + r.time, 0) / cR.length) : 0;
+  const code = seedToCode(gameSeed);
+  const dots = results.map(r => r.tier === 'fast' ? '💎' : r.tier === 'ok' ? '🟢' : r.tier === 'slow' ? '🟠' : '❌').join('');
+  const text = `🧮 Quick Math #${code}\n\n${grade} — ${score} pts\n\n⏱ Avg: ${avgTime}ms\n✓ ${correct} solved\n🔥 Streak: ${maxStreak}\n📈 Peak: ${DIFF_NAMES[maxDiffLevel]}\n\n${dots}\n\nBeat me → https://fullclear315.github.io/html-games/quick-math.html?s=${code}`;
+  if (navigator.share) { navigator.share({ text }).catch(() => {}); return; }
+  try {
+    const ta = document.createElement('textarea'); ta.value = text;
+    ta.style.cssText = 'position:fixed;left:0;top:0;opacity:0.01;width:1px;height:1px';
+    document.body.appendChild(ta); ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length);
+    const ok = document.execCommand('copy'); document.body.removeChild(ta);
+    if (ok) { showMilestone('Copied!'); return; }
+  } catch (e) {}
+  try { navigator.clipboard.writeText(text).then(() => showMilestone('Copied!')).catch(() => {}); } catch (e) {}
+}
+
+// ── Floating text & milestones ──
+function drawFloatingTexts() {
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    const ft = floatingTexts[i];
+    ft.y += ft.vy; ft.alpha -= 0.016;
+    if (ft.scale) { ft.scale += (1 - ft.scale) * 0.12; } // bounce toward 1
+    if (ft.alpha <= 0) { floatingTexts.splice(i, 1); continue; }
+    ctx.globalAlpha = ft.alpha;
+    const s = ft.scale || 1;
+    const fs = u * (ft.size || 0.045);
+    if (s !== 1) {
+      ctx.save(); ctx.translate(ft.x, ft.y); ctx.scale(s, s);
+      fillText(ft.text, 0, 0, fs, ft.color, 'center', '800');
+      ctx.restore();
+    } else {
+      fillText(ft.text, ft.x, ft.y, fs, ft.color, 'center', '700');
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+function drawMilestone() {
+  if (milestoneAlpha <= 0) return;
+  const cx = W / 2, my = H * 0.50;
+  const mw = Math.min(W * 0.75, 320), mh = u * 0.09;
+  ctx.globalAlpha = milestoneAlpha * 0.9;
+  roundRect(cx - mw / 2, my - mh / 2, mw, mh, mh / 2);
+  ctx.fillStyle = '#0d0818'; ctx.fill();
+  ctx.strokeStyle = GOLD; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.globalAlpha = milestoneAlpha;
+  fillText(milestoneText, cx, my, u * 0.042, GOLD, 'center', '700');
+  ctx.globalAlpha = 1;
+  milestoneAlpha -= 0.014; if (milestoneAlpha < 0) milestoneAlpha = 0;
+}
+
+function drawParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += p.gravity;
+    p.alpha -= 0.02; p.size *= 0.97;
+    if (p.alpha <= 0 || p.size < 0.3) { particles.splice(i, 1); continue; }
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawRings() {
+  for (let i = rings.length - 1; i >= 0; i--) {
+    const r = rings[i];
+    r.r += r.speed; r.alpha -= 0.04;
+    if (r.alpha <= 0 || r.r > r.maxR) { rings.splice(i, 1); continue; }
+    ctx.globalAlpha = r.alpha;
+    ctx.strokeStyle = r.color; ctx.lineWidth = r.width;
+    ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawFlash() {
+  if (flashAlpha <= 0) return;
+  ctx.globalAlpha = flashAlpha;
+  ctx.fillStyle = flashColor; ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 1;
+  flashAlpha *= 0.85;
+  if (flashAlpha < 0.005) flashAlpha = 0;
+}
+
+// ── Main loop ──
+function loop() {
+  animFrame++; resize();
+  if (Math.abs(shakeX) > 0.5) shakeX *= -0.85; else shakeX = 0;
+  shakeY = shakeX * 0.5;
+
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+  ctx.save(); ctx.translate(VX + shakeX, VY + shakeY);
+  ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+  ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H);
+  const grad = ctx.createLinearGradient(0, 0, 0, H * 0.3);
+  grad.addColorStop(0, BG2); grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H * 0.3);
+  btnRects = [];
+
+  if (state === 'title') drawTitle();
+  else if (state === 'countdown') {
+    const now = performance.now();
+    if (now - countdownTimer > 700) {
+      countdownVal--; countdownTimer = now;
+      if (countdownVal > 0) playCountdown();
+      else if (countdownVal === 0) playGo();
+      else startRound();
+    }
+    if (state === 'countdown') drawCountdown();
+  } else if (state === 'playing') {
+    if (performance.now() - roundStartTime >= TIME_LIMIT) handleTimeout();
+    drawPlaying();
+  } else if (state === 'feedback') {
+    drawPlaying();
+    if (performance.now() - feedbackTimer > 600) {
+      round++;
+      if (lives <= 0 || round >= TOTAL_ROUNDS) endGame();
+      else startRound();
+    }
+  } else if (state === 'gameover') drawGameOver();
+
+  drawFloatingTexts(); drawMilestone();
+  drawParticles(); drawRings(); drawFlash();
+  // Animate displayScore toward actual score
+  if (displayScore < score) {
+    const diff = score - displayScore;
+    displayScore += Math.max(1, Math.ceil(diff * 0.15));
+    if (displayScore > score) displayScore = score;
+  }
+  // Decay score pop
+  if (scorePop > 0.005) scorePop *= 0.88; else scorePop = 0;
+  ctx.restore(); requestAnimationFrame(loop);
+}
+
+// ── Input ──
+let lastInputTime = 0;
+function handleInput(e) {
+  const now = performance.now();
+  if (now - lastInputTime < 50) return;
+  lastInputTime = now; e.preventDefault(); initAudio();
+  const t = e.touches ? e.touches[0] : e;
+  const rect = canvas.getBoundingClientRect();
+  const x = t.clientX - rect.left - VX, y = t.clientY - rect.top - VY;
+  if (state === 'title') { startGame(); return; }
+  if (state === 'playing') {
+    for (const btn of btnRects)
+      if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) { handleAnswer(btn.idx); return; }
+  }
+  if (state === 'gameover') {
+    for (const btn of btnRects)
+      if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
+        if (btn.action === 'again') startGame(); else if (btn.action === 'share') shareResults(); return;
+      }
+  }
+}
+canvas.addEventListener('touchstart', handleInput, { passive: false });
+canvas.addEventListener('mousedown', handleInput);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
