@@ -432,11 +432,25 @@ function shareScore(){
   const card=buildScorecard();
   if(!card)return;
   vib(15);
+  // Textarea fallback — works in WebViews where clipboard API is blocked
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=card;
+    ta.style.cssText='position:fixed;left:-9999px;top:0;opacity:0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0,ta.value.length);
+    const ok=document.execCommand('copy');
+    document.body.removeChild(ta);
+    if(ok){shareFlash=performance.now();return;}
+  }catch(e){}
+  // Clipboard API as secondary attempt
   try{
     navigator.clipboard.writeText(card).then(()=>{
       shareFlash=performance.now();
-    }).catch(()=>{shareFlash=performance.now();});
-  }catch(e){shareFlash=performance.now();}
+    }).catch(()=>{});
+  }catch(e){}
 }
 
 function drawRoundRect(x,y,w,h,r){
