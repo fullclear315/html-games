@@ -141,7 +141,7 @@ function roundRect(x, y, w, h, r) {
 G.fillText = fillText; G.roundRect = roundRect;
 
 // ── Render ──
-let btnRects = [], animFrame = 0, shellActive = true;
+let btnRects = [], animFrame = 0, shellActive = true, tappedIdx = -1;
 
 function draw() {
   if (!shellActive) return;
@@ -211,20 +211,28 @@ function draw() {
   for (let i = 0; i < 4; i++) {
     const col = i % 2, row = Math.floor(i / 2);
     const rx = bStartX + col * (bw + btnGapV), ry = bStartY + row * (bh + btnGapV);
-    roundRect(rx, ry, bw, bh, u * 0.02); ctx.fillStyle = BTN_BG; ctx.fill();
-    ctx.strokeStyle = BTN_BORDER; ctx.lineWidth = 2; ctx.stroke();
+    let bg = BTN_BG, border = BTN_BORDER;
+    if (tappedIdx >= 0) {
+      if (i === equation.correctIdx) { bg = '#166534'; border = G.GREEN; }
+      else if (i === tappedIdx && tappedIdx !== equation.correctIdx) { bg = '#991b1b'; border = G.RED; }
+      else ctx.globalAlpha = 0.4;
+    }
+    roundRect(rx, ry, bw, bh, u * 0.02); ctx.fillStyle = bg; ctx.fill();
+    ctx.strokeStyle = border; ctx.lineWidth = 2; ctx.stroke(); ctx.globalAlpha = 1;
     fillText(equation.options[i].toString(), rx + bw / 2, ry + bh / 2, u * 0.065, WHITE, 'center', '700');
     btnRects.push({ x: rx, y: ry, w: bw, h: bh, idx: i });
   }
 
-  // CTA
-  const pulse = 0.85 + 0.15 * Math.sin(animFrame * 0.06);
-  const ctaY = H * 0.50;
-  ctx.globalAlpha = pulse;
-  fillText('⬇️  Tap an answer!', cx, ctaY, u * 0.05, WHITE, 'center', '800');
-  ctx.globalAlpha = 0.5;
-  if (urlSeed !== null) fillText('⚔️ Challenge #' + seedToCode(urlSeed), cx, ctaY - u * 0.065, u * 0.036, GOLD, 'center', '600');
-  ctx.globalAlpha = 1;
+  // CTA (hide after tap)
+  if (tappedIdx < 0) {
+    const pulse = 0.85 + 0.15 * Math.sin(animFrame * 0.06);
+    const ctaY = H * 0.50;
+    ctx.globalAlpha = pulse;
+    fillText('⬇️  Tap an answer!', cx, ctaY, u * 0.05, WHITE, 'center', '800');
+    ctx.globalAlpha = 0.5;
+    if (urlSeed !== null) fillText('⚔️ Challenge #' + seedToCode(urlSeed), cx, ctaY - u * 0.065, u * 0.036, GOLD, 'center', '600');
+    ctx.globalAlpha = 1;
+  }
 
   ctx.restore();
   requestAnimationFrame(draw);
@@ -242,6 +250,7 @@ function handleInput(e) {
   for (const btn of btnRects) {
     if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
       loading = true;
+      tappedIdx = btn.idx;
       // Record first answer for core.js to process
       G.firstTap = { idx: btn.idx, time: performance.now() };
 
