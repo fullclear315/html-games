@@ -124,7 +124,9 @@ function resize(){
   canvas.width=W*dpr;canvas.height=H*dpr;
   canvas.style.width=W+'px';canvas.style.height=H+'px';
   ctx.setTransform(dpr,0,0,dpr,0,0);
-  u=Math.min(W,H);
+  // On tall mobile screens, W is tiny vs H — use a boosted unit
+  const aspect=H/W;
+  u=aspect>1.4?W*1.15:Math.min(W,H);
 }
 window.addEventListener('resize',resize);
 resize();
@@ -347,13 +349,13 @@ function showCopyOverlay(text){
 
 // ── Layout Calculations ──
 function getGridLayout(){
-  const maxW=Math.min(W*0.85,380);
+  const maxW=Math.min(W*0.88,380);
   const gap=u*0.012;
-  const tileSize=Math.min((maxW-gap*(WORD_LEN-1))/WORD_LEN, u*0.11);
+  const tileSize=Math.min((maxW-gap*(WORD_LEN-1))/WORD_LEN, u*0.12);
   const gridW=tileSize*WORD_LEN+gap*(WORD_LEN-1);
   const gridH=tileSize*MAX_GUESSES+gap*(MAX_GUESSES-1);
   const sx=(W-gridW)/2;
-  const sy=u*0.09;
+  const sy=u*0.1;
   return{sx,sy,tileSize,gap,gridW,gridH};
 }
 
@@ -363,9 +365,9 @@ function getKeyboardLayout(){
     'ASDFGHJKL'.split(''),
     ['ENT','Z','X','C','V','B','N','M','⌫']
   ];
-  const maxW=Math.min(W*0.96,460);
-  const kGap=u*0.006;
-  const kh=u*0.068;
+  const maxW=Math.min(W*0.97,460);
+  const kGap=u*0.007;
+  const kh=u*0.075;
   const totalH=kh*3+kGap*2;
   const baseY=H-totalH-u*0.02;
   const keys=[];
@@ -502,16 +504,16 @@ function drawGrid(){
 }
 
 function drawHUD(){
-  const fs=Math.round(u*0.04);
+  const fs=Math.round(u*0.048);
   ctx.font='bold '+fs+'px -apple-system,sans-serif';
   ctx.textAlign='center';
   ctx.fillStyle=COL.text;
-  ctx.fillText('HUNCH',W/2,u*0.05);
+  ctx.fillText('HUNCH',W/2,u*0.06);
 
   if(challengeMode&&gameState==='playing'){
-    ctx.font=Math.round(u*0.022)+'px -apple-system,sans-serif';
+    ctx.font=Math.round(u*0.026)+'px -apple-system,sans-serif';
     ctx.fillStyle=COL.textDim;
-    ctx.fillText('Challenge Mode',W/2,u*0.075);
+    ctx.fillText('Challenge Mode',W/2,u*0.088);
   }
 }
 
@@ -531,28 +533,28 @@ function drawFloats(){
 function drawIntro(){
   ctx.fillStyle=COL.bg;ctx.fillRect(0,0,W,H);
   const cx=W/2;
-  let y=H*0.3;
+  let y=H*0.25;
 
-  ctx.font='bold '+Math.round(u*0.1)+'px -apple-system,sans-serif';
+  ctx.font='bold '+Math.round(u*0.12)+'px -apple-system,sans-serif';
   ctx.textAlign='center';ctx.fillStyle=COL.text;
-  ctx.fillText('HUNCH',cx,y);y+=u*0.08;
+  ctx.fillText('HUNCH',cx,y);y+=u*0.1;
 
   // Draw sample tiles
   const sample=['W','O','R','D','L'];
   const states=['correct','present','absent','absent','correct'];
-  const ts=u*0.09;const gap=u*0.01;
+  const ts=u*0.1;const gap=u*0.012;
   const startX=cx-(ts*5+gap*4)/2;
   for(let i=0;i<5;i++){
     drawTile(startX+i*(ts+gap),y,ts,sample[i],states[i]);
   }
-  y+=ts+u*0.08;
+  y+=ts+u*0.09;
 
-  ctx.font=Math.round(u*0.03)+'px -apple-system,sans-serif';
+  ctx.font=Math.round(u*0.038)+'px -apple-system,sans-serif';
   ctx.fillStyle=COL.textDim;
-  ctx.fillText('Guess the 5-letter word in 6 tries',cx,y);y+=u*0.05;
+  ctx.fillText('Guess the 5-letter word in 6 tries',cx,y);y+=u*0.06;
 
   // Color legend
-  const legendFS=Math.round(u*0.025);
+  const legendFS=Math.round(u*0.03);
   ctx.font=legendFS+'px -apple-system,sans-serif';
   const legends=[
     {color:COL.correct,text:'🟩 Correct spot'},
@@ -561,26 +563,28 @@ function drawIntro(){
   ];
   for(const l of legends){
     ctx.fillStyle=l.color;
-    ctx.fillText(l.text,cx,y);y+=u*0.04;
+    ctx.fillText(l.text,cx,y);y+=u*0.045;
   }
 
   if(challengeMode){
     y+=u*0.03;
     ctx.fillStyle=COL.gold;
-    ctx.font='bold '+Math.round(u*0.028)+'px -apple-system,sans-serif';
+    ctx.font='bold '+Math.round(u*0.032)+'px -apple-system,sans-serif';
     ctx.fillText('🏆 Challenge Mode — beat their score!',cx,y);
-    y+=u*0.04;
+    y+=u*0.05;
   }
 
-  y=Math.max(y+u*0.04,H*0.75);
-  // Tap to start button
-  const btnW=Math.min(W*0.6,250);const btnH=u*0.07;
-  const bx=cx-btnW/2;const by=y;
+  // Tap to start button — anchor from bottom
+  const btnW=Math.min(W*0.7,280);const btnH=u*0.08;
+  const bx=cx-btnW/2;
+  const by=Math.max(y+u*0.04,H-btnH-H*0.12);
   ctx.fillStyle=COL.correct;
-  roundRect(bx,by,btnW,btnH,u*0.01);ctx.fill();
+  roundRect(bx,by,btnW,btnH,u*0.012);ctx.fill();
   ctx.fillStyle=COL.white;
-  ctx.font='bold '+Math.round(u*0.032)+'px -apple-system,sans-serif';
-  ctx.fillText('Tap to Play',cx,by+btnH/2+2);
+  ctx.font='bold '+Math.round(u*0.036)+'px -apple-system,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('Tap to Play',cx,by+btnH/2);
+  ctx.textBaseline='alphabetic';
 
   introBtn={x:bx,y:by,w:btnW,h:btnH};
 }
