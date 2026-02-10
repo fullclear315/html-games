@@ -48,7 +48,7 @@ let W, H, dpr, VW, VH, VX, VY, u;
 const MAX_ASPECT = 9 / 16;
 
 function resize() {
-  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  dpr = 1;
   const rw = window.innerWidth, rh = window.innerHeight;
   canvas.width = rw * dpr; canvas.height = rh * dpr;
   canvas.style.width = rw + 'px'; canvas.style.height = rh + 'px';
@@ -78,8 +78,6 @@ function playTone(freq, dur, vol, type) {
 }
 function playCorrect(stk) { const b = 520 + Math.min(stk, 10) * 30; playTone(b, 0.12, 0.12); setTimeout(() => playTone(b * 1.25, 0.1, 0.10), 60); }
 function playWrong() { playTone(200, 0.2, 0.12, 'sawtooth'); setTimeout(() => playTone(160, 0.25, 0.10, 'sawtooth'), 80); }
-function playCountdown() { playTone(440, 0.08, 0.08); }
-function playGo() { playTone(660, 0.15, 0.12); setTimeout(() => playTone(880, 0.12, 0.10), 80); }
 function playStreak(n) { for (let i = 0; i < Math.min(n, 5); i++) setTimeout(() => playTone(600 + i * 80, 0.06, 0.08), i * 40); }
 function playGameOver() { [392, 330, 294, 262].forEach((f, i) => setTimeout(() => playTone(f, 0.35, 0.12, 'triangle'), i * 150)); }
 function playWin() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => playTone(f, 0.3, 0.10), i * 120)); }
@@ -87,11 +85,10 @@ function playLifeLost() { playTone(250, 0.15, 0.12, 'sawtooth'); setTimeout(() =
 function vib(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
 
 // ── State ──
-let state = 'title';
+let state = 'ready';
 let round = 0, score = 0, streak = 0, maxStreak = 0, lives = MAX_LIVES;
 let results = [];
 let equation = null, roundStartTime = 0, feedbackTimer = 0, feedbackResult = null;
-let countdownVal = 3, countdownTimer = 0;
 let shakeX = 0, shakeY = 0;
 let floatingTexts = [], milestoneText = '', milestoneAlpha = 0;
 let timeBarPct = 1, animFrame = 0, btnRects = [];
@@ -262,6 +259,8 @@ function getUrlSeed() {
 let urlSeed = getUrlSeed();
 
 // ── Game flow ──
+let ctaAlpha = 1; // CTA overlay opacity
+
 function startGame() {
   round = 0; score = 0; streak = 0; maxStreak = 0; lives = MAX_LIVES;
   results = []; floatingTexts = [];
@@ -270,7 +269,12 @@ function startGame() {
   milestoneText = ''; milestoneAlpha = 0;
   diffLevel = 0; maxDiffLevel = 0; gameStartTime = 0;
   gameSeed = urlSeed !== null ? urlSeed : newSeed();
-  state = 'countdown'; countdownVal = 3; countdownTimer = performance.now();
+  seedForRound(0, 0);
+  equation = genEquation();
+  rng = Math.random;
+  feedbackResult = null; timeBarPct = 1;
+  ctaAlpha = 1;
+  state = 'ready';
 }
 function startRound() {
   seedForRound(round, diffLevel);
@@ -430,11 +434,12 @@ function gradeColor(g) {
 
 // ── Drawing helpers ──
 function fillText(text, x, y, size, color, align, weight) {
-  ctx.font = (weight || '600') + ' ' + size + 'px ' + FONT;
+  ctx.font = (weight || '600') + ' ' + Math.round(size) + 'px ' + FONT;
   ctx.fillStyle = color || WHITE; ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(text, x, y);
+  ctx.fillText(text, Math.round(x), Math.round(y));
 }
 function roundRect(x, y, w, h, r) {
+  x = Math.round(x); y = Math.round(y); w = Math.round(w); h = Math.round(h); r = Math.round(r);
   ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y);
   ctx.quadraticCurveTo(x + w, y, x + w, y + r); ctx.lineTo(x + w, y + h - r);
   ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); ctx.lineTo(x + r, y + h);
@@ -469,44 +474,28 @@ function drawResultDot(x, y, r, tier) {
   }
 }
 
-// ── Draw: Title ──
-function drawTitle() {
-  const cx = W / 2, titleFS = u * 0.11, subFS = u * 0.04, ctaFS = u * 0.045;
-  const totalH = titleFS * 2 + u * 0.04 + subFS * 4 + u * 0.06 + u * 0.14;
-  let y = (H - totalH) / 2;
-  fillText('🧮', cx, y, titleFS * 0.9, WHITE, 'center', '400'); y += titleFS;
-  fillText('Quick Math', cx, y, titleFS, WHITE, 'center', '800'); y += titleFS + u * 0.04;
-  fillText('Solve the equation · Tap the answer', cx, y, subFS, DIM); y += subFS + u * 0.015;
-  fillText('+ − × ÷  Adapts to your speed!', cx, y, subFS, ACC); y += subFS + u * 0.015;
-  fillText('3 mistakes and you\'re out', cx, y, subFS, RED); y += subFS + u * 0.015;
-  fillText('Higher difficulty = more points', cx, y, subFS, DIM); y += subFS + u * 0.015;
-  if (urlSeed !== null) {
-    fillText('⚔️ Challenge #' + seedToCode(urlSeed), cx, y, subFS, GOLD); y += subFS + u * 0.065;
-  } else { y += u * 0.065; }
-  const btnW = Math.min(W * 0.6, 260), btnH = u * 0.13, bx = cx - btnW / 2;
-  roundRect(bx, y - btnH / 2, btnW, btnH, btnH / 2); ctx.fillStyle = ACC2; ctx.fill();
-  fillText('TAP TO START', cx, y, ctaFS, WHITE, 'center', '700');
-  const pulse = 0.7 + 0.3 * Math.sin(animFrame * 0.04);
-  ctx.globalAlpha = pulse * 0.3;
-  roundRect(bx - 3, y - btnH / 2 - 3, btnW + 6, btnH + 6, btnH / 2 + 3);
-  ctx.strokeStyle = ACC; ctx.lineWidth = 2; ctx.stroke(); ctx.globalAlpha = 1;
-}
+// ── Draw: CTA overlay (shown over the first equation) ──
+function drawCTA() {
+  if (ctaAlpha <= 0) return;
+  const cx = W / 2;
+  const pulse = 0.85 + 0.15 * Math.sin(animFrame * 0.06);
 
-// ── Draw: Countdown ──
-function drawCountdown() {
-  const cx = W / 2, cy = H / 2, fs = u * 0.2;
-  const text = countdownVal > 0 ? countdownVal.toString() : 'GO!';
-  const color = countdownVal > 0 ? WHITE : GREEN;
-  const scale = 1 + 0.15 * Math.max(0, 1 - (performance.now() - countdownTimer) / 300);
-  ctx.save(); ctx.translate(cx, cy); ctx.scale(scale, scale);
-  fillText(text, 0, 0, fs, color, 'center', '800'); ctx.restore();
+  // Floating CTA between equation and buttons
+  const ctaY = H * 0.50;
+  ctx.globalAlpha = ctaAlpha * pulse;
+  fillText('⬇️  Tap an answer!', cx, ctaY, u * 0.05, WHITE, 'center', '800');
+  ctx.globalAlpha = ctaAlpha * 0.5;
+  if (urlSeed !== null) {
+    fillText('⚔️ Challenge #' + seedToCode(urlSeed), cx, ctaY - u * 0.065, u * 0.036, GOLD, 'center', '600');
+  }
+  ctx.globalAlpha = 1;
 }
 
 // ── Draw: Playing ──
 function drawPlaying() {
   const cx = W / 2, safePad = u * 0.035;
   const now = performance.now(), elapsed = now - roundStartTime;
-  timeBarPct = Math.max(0, 1 - elapsed / TIME_LIMIT);
+  timeBarPct = state === 'ready' ? 1 : Math.max(0, 1 - elapsed / TIME_LIMIT);
 
   // ── Bottom dock (score + streak) ──
   const dockH = u * 0.09;
@@ -527,7 +516,7 @@ function drawPlaying() {
   if (sp > 1.01) ctx.scale(sp, sp);
   fillText(scoreStr, 0, 0, scoreFS, ACC, 'left', '800');
   ctx.restore();
-  fillText('pts', safePad + u * 0.02 + scoreTextW + u * 0.01, scoreY, u * 0.028, DIM, 'left', '600');
+  fillText('pts', safePad + u * 0.02 + scoreTextW + u * 0.01, scoreY, u * 0.032, DIM, 'left', '600');
 
   // Streak right
   if (streak > 1) {
@@ -549,7 +538,7 @@ function drawPlaying() {
       ctx.arc(hx + hs * 0.52, y - hs * 0.25, hs * 0.6, Math.PI, 0);
       ctx.lineTo(hx, y + hs * 0.95); ctx.closePath(); ctx.fill();
     } else {
-      ctx.strokeStyle = '#4a3060'; ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#4a3060'; ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(hx - hs * 0.52, y - hs * 0.25, hs * 0.6, Math.PI, 0);
       ctx.arc(hx + hs * 0.52, y - hs * 0.25, hs * 0.6, Math.PI, 0);
@@ -565,7 +554,8 @@ function drawPlaying() {
   if (timeBarPct > 0) {
     // Color matches speed tiers for current difficulty
     const tt = TIER_THRESHOLDS[diffLevel];
-    const bc = elapsed < tt[0] ? GOLD : elapsed < tt[1] ? GREEN : elapsed < (tt[1] + TIME_LIMIT) / 2 ? ORANGE : RED;
+    const elMs = state === 'ready' ? 0 : elapsed;
+    const bc = elMs < tt[0] ? GOLD : elMs < tt[1] ? GREEN : elMs < (tt[1] + TIME_LIMIT) / 2 ? ORANGE : RED;
     roundRect(bx, y, barW * timeBarPct, barH, barH / 2); ctx.fillStyle = bc; ctx.fill();
   }
   y += barH + H * 0.015;
@@ -644,7 +634,7 @@ function drawGameOver() {
   y += u * 0.14 + gap * 0.3;
   fillText('points', cx, y, u * 0.035, DIM);
   y += u * 0.035 + gap * 0.3;
-  fillText('#' + seedToCode(gameSeed), cx, y, u * 0.025, DIM); y += u * 0.025 + gap;
+  fillText('#' + seedToCode(gameSeed), cx, y, u * 0.03, DIM); y += u * 0.03 + gap;
 
   const stats = [
     { label: 'SOLVED', value: correct.toString(), color: correct >= results.length - 1 ? GREEN : correct >= results.length * 0.7 ? ACC : ORANGE },
@@ -658,7 +648,7 @@ function drawGameOver() {
     const rowH = u * 0.09 + gap;
     const sx = gx + col * colW + colW / 2, sy = y + row * rowH;
     fillText(stats[i].value, sx, sy, u * 0.055, stats[i].color, 'center', '700');
-    fillText(stats[i].label, sx, sy + u * 0.048, u * 0.026, DIM, 'center', '600');
+    fillText(stats[i].label, sx, sy + u * 0.048, u * 0.032, DIM, 'center', '600');
   }
   y += 2 * (u * 0.09 + gap) + gap * 0.5;
 
@@ -731,7 +721,7 @@ function drawMilestone() {
   ctx.globalAlpha = milestoneAlpha * 0.9;
   roundRect(cx - mw / 2, my - mh / 2, mw, mh, mh / 2);
   ctx.fillStyle = '#0d0818'; ctx.fill();
-  ctx.strokeStyle = GOLD; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.strokeStyle = GOLD; ctx.lineWidth = 2; ctx.stroke();
   ctx.globalAlpha = milestoneAlpha;
   fillText(milestoneText, cx, my, u * 0.042, GOLD, 'center', '700');
   ctx.globalAlpha = 1;
@@ -787,16 +777,9 @@ function loop() {
   ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H * 0.3);
   btnRects = [];
 
-  if (state === 'title') drawTitle();
-  else if (state === 'countdown') {
-    const now = performance.now();
-    if (now - countdownTimer > 700) {
-      countdownVal--; countdownTimer = now;
-      if (countdownVal > 0) playCountdown();
-      else if (countdownVal === 0) playGo();
-      else startRound();
-    }
-    if (state === 'countdown') drawCountdown();
+  if (state === 'ready') {
+    drawPlaying();
+    drawCTA();
   } else if (state === 'playing') {
     if (performance.now() - roundStartTime >= TIME_LIMIT) handleTimeout();
     drawPlaying();
@@ -831,7 +814,19 @@ function handleInput(e) {
   const t = e.touches ? e.touches[0] : e;
   const rect = canvas.getBoundingClientRect();
   const x = t.clientX - rect.left - VX, y = t.clientY - rect.top - VY;
-  if (state === 'title') { startGame(); return; }
+  if (state === 'ready') {
+    for (const btn of btnRects)
+      if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
+        // First tap: start timer and process answer
+        roundStartTime = performance.now();
+        gameStartTime = roundStartTime;
+        state = 'playing';
+        ctaAlpha = 0;
+        handleAnswer(btn.idx);
+        return;
+      }
+    return;
+  }
   if (state === 'playing') {
     for (const btn of btnRects)
       if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) { handleAnswer(btn.idx); return; }
@@ -845,6 +840,7 @@ function handleInput(e) {
 }
 canvas.addEventListener('touchstart', handleInput, { passive: false });
 canvas.addEventListener('mousedown', handleInput);
+startGame(); // immediately prepare first equation
 requestAnimationFrame(loop);
 </script>
 </body>
