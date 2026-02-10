@@ -45,11 +45,15 @@ const BTN_CORRECT = '#166534';
 const BTN_WRONG = '#991b1b';
 
 let W, H, dpr, VW, VH, VX, VY, u;
+let bgGrad = null;
+let lastRW = 0, lastRH = 0;
 const MAX_ASPECT = 9 / 16;
 
 function resize() {
-  dpr = 1;
   const rw = window.innerWidth, rh = window.innerHeight;
+  if (rw === lastRW && rh === lastRH) return;
+  lastRW = rw; lastRH = rh;
+  dpr = 1;
   canvas.width = rw * dpr; canvas.height = rh * dpr;
   canvas.style.width = rw + 'px'; canvas.style.height = rh + 'px';
   if (rw / rh > MAX_ASPECT) {
@@ -58,6 +62,8 @@ function resize() {
   } else { VW = rw; VH = rh; VX = 0; VY = 0; }
   W = VW; H = VH; u = Math.min(W, H);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  bgGrad = ctx.createLinearGradient(0, 0, 0, H * 0.3);
+  bgGrad.addColorStop(0, BG2); bgGrad.addColorStop(1, 'transparent');
 }
 window.addEventListener('resize', resize); resize();
 
@@ -73,6 +79,7 @@ function playTone(freq, dur, vol, type) {
     g.gain.setValueAtTime(vol || 0.12, audioCtx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (dur || 0.15));
     o.connect(g); g.connect(audioCtx.destination);
+    o.onended = () => { o.disconnect(); g.disconnect(); };
     o.start(); o.stop(audioCtx.currentTime + (dur || 0.15));
   } catch (e) {}
 }
@@ -772,9 +779,7 @@ function loop() {
   ctx.save(); ctx.translate(VX + shakeX, VY + shakeY);
   ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
   ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H);
-  const grad = ctx.createLinearGradient(0, 0, 0, H * 0.3);
-  grad.addColorStop(0, BG2); grad.addColorStop(1, 'transparent');
-  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H * 0.3);
+  ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H * 0.3);
   btnRects = [];
 
   if (state === 'ready') {
