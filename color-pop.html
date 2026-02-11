@@ -17,8 +17,8 @@ const FONT='-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
 const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
 const WHITE='#f0f0f5',GOLD='#ffd93d',GREEN='#2ed573',ORANGE='#ffa502',RED='#ff6b6b',ACCENT='#4d96ff',CYAN='#00cec9';
 const COLORS=['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff922b','#cc5de8','#20c997','#f06595'];
-const TOTAL=20, FAST_MS=350, OK_MS=650;
-const APPEAR_START=1400, APPEAR_END=750;
+const TOTAL=20, FAST_MS=320, OK_MS=600;
+const APPEAR_START=1200, APPEAR_END=650;
 const PI=Math.PI;
 
 // ── Virtual Viewport ──
@@ -128,7 +128,7 @@ let particles=[],rings=[],floatingTexts=[];
 let flashAlpha=0,flashColor=RED;
 let gameStartTime=0,lastTime=0;
 let streak=0,bestStreak=0,comboScale=1,shakeX=0,shakeY=0;
-let finalScore=0,displayScore=0,scorePop=0;
+let heroMs=0,displayScore=0,scorePop=0;
 let ctaAlpha=1;
 
 // Callout
@@ -139,36 +139,35 @@ let goData=null,goStartTime=0,btnRect={x:0,y:0,w:0,h:0},shareBtnRect={x:0,y:0,w:
 let copiedFlash=0;
 const GO_COUNT_DUR=1800, GO_STAT_DELAY=400, GO_STAT_STAGGER=120;
 
-// ── Scoring ──
-function calcScore(avgMs,hits,miss){
+// ── Scoring: effective avg ms is the score (lower = better) ──
+function calcEffectiveAvg(avgMs,hits,miss){
   const totalTime=avgMs*hits+miss*2000;
-  const effectiveAvg=totalTime/(hits+miss||1);
-  if(effectiveAvg<=200)return 100;
-  if(effectiveAvg>=2200)return 0;
-  return Math.round(100*(1-(effectiveAvg-200)/2000));
+  return Math.round(totalTime/(hits+miss||1));
 }
 
+// Title ladder: keyed on effective avg ms (lower = better)
 const TITLE_LADDER=[
-  {min:0,   title:'🐌 Snoozing',     color:RED},
-  {min:0.22,title:'🐢 Warming Up',   color:'#e08050'},
-  {min:0.35,title:'👀 Getting There', color:ORANGE},
-  {min:0.50,title:'🎯 Quick Draw',    color:CYAN},
-  {min:0.65,title:'⚡ Fast Hands',    color:GREEN},
-  {min:0.78,title:'🔥 Lightning',     color:'#a0e86c'},
-  {min:0.88,title:'🦅 Hawk Reflexes', color:'#c0ff70'},
-  {min:0.95,title:'👁️ Inhuman',       color:GOLD},
+  {max:9999,title:'🐌 Snoozing',     color:RED},
+  {max:800, title:'🐢 Warming Up',   color:'#e08050'},
+  {max:650, title:'👀 Getting There', color:ORANGE},
+  {max:520, title:'🎯 Quick Draw',    color:CYAN},
+  {max:420, title:'⚡ Fast Hands',    color:GREEN},
+  {max:350, title:'🔥 Lightning',     color:'#a0e86c'},
+  {max:290, title:'🦅 Hawk Reflexes', color:'#c0ff70'},
+  {max:240, title:'👁️ Inhuman',       color:GOLD},
 ];
-function getTitleForScore(s){
-  const pct=s/100;let t=TITLE_LADDER[0];
-  for(let i=TITLE_LADDER.length-1;i>=0;i--)if(pct>=TITLE_LADDER[i].min){t=TITLE_LADDER[i];break;}
-  return t;
+function getTitleForMs(ms){
+  for(let i=TITLE_LADDER.length-1;i>=0;i--)if(ms<=TITLE_LADDER[i].max)return TITLE_LADDER[i];
+  return TITLE_LADDER[0];
 }
-function getPercentile(s){
-  const mean=48,sd=16,z=(s-mean)/(sd*Math.SQRT2);
+// Percentile: lower ms = higher percentile. Mean ~550ms, sd ~120ms for casual mobile.
+function getPercentile(ms){
+  const mean=550,sd=120,z=(ms-mean)/(sd*Math.SQRT2);
   const t=1/(1+0.3275911*Math.abs(z));
   const poly=t*(0.254829592+t*(-0.284496736+t*(1.421413741+t*(-1.453152027+t*1.061405429))));
   const erf=1-poly*Math.exp(-z*z);const cdf=0.5*(1+(z>=0?erf:-erf));
-  return Math.max(1,Math.min(99,Math.round(cdf*100)));
+  // Invert: lower ms = higher percentile
+  return Math.max(1,Math.min(99,Math.round((1-cdf)*100)));
 }
 
 // ── Effects ──
@@ -340,14 +339,14 @@ function endGame(){
   const elapsed=(performance.now()-gameStartTime)/1000;
   const hits=reactionTimes.length;
   const avgTime=hits>0?reactionTimes.reduce((a,b)=>a+b,0)/hits:9999;
-  finalScore=calcScore(avgTime,hits,misses);
+  heroMs=calcEffectiveAvg(avgTime,hits,misses);
   displayScore=0;scorePop=0;
   const fastCount=reactionTimes.filter(t=>t<FAST_MS).length;
-  goData={score:finalScore,avgTime:Math.round(avgTime),hits,misses,fastCount,bestStreak,elapsed:Math.round(elapsed)};
+  goData={heroMs,avgTime:Math.round(avgTime),hits,misses,fastCount,bestStreak,elapsed:Math.round(elapsed)};
   goStartTime=performance.now();
-  playGameOver(finalScore>=50);vib('heavy');
+  playGameOver(heroMs<=520);vib('heavy');
   window.dispatchEvent(new CustomEvent('gameComplete',{
-    detail:{score:finalScore,maxScore:100,duration:Math.round(elapsed),won:hits>=TOTAL/2}
+    detail:{score:heroMs,maxScore:null,duration:Math.round(elapsed),won:hits>=TOTAL/2}
   }));
 }
 
@@ -355,11 +354,18 @@ function endGame(){
 function initGame(){
   circleIndex=0;reactionTimes=[];resultLog=[];misses=0;currentCircle=null;
   particles=[];rings=[];floatingTexts=[];flashAlpha=0;shakeX=0;shakeY=0;
-  streak=0;bestStreak=0;comboScale=1;finalScore=0;displayScore=0;scorePop=0;
+  streak=0;bestStreak=0;comboScale=1;heroMs=0;displayScore=0;scorePop=0;
   callout='';calloutAlpha=0;lastCalloutText='';
   goData=null;copiedFlash=0;ctaAlpha=1;
   state='ready';
-  spawnCircle(); // pre-generate first circle for instant-play
+  // Spawn starter circle (offset seed so it's different from real circle 0)
+  rng=mulberry32(hashSeed(gameSeed,999,0));
+  const safeTop=Math.round(H*0.13),safeBot=Math.round(H*0.25);
+  const sr=randInt(28,40),spad=sr+14;
+  const sx=randInt(spad,W-spad),sy=randInt(Math.round(H*0.5)+spad,H-safeBot-spad);
+  const sci=randInt(0,COLORS.length-1);
+  rng=Math.random;
+  currentCircle={x:sx,y:sy,r:sr,color:COLORS[sci],maxTime:99999,elapsed:0,hit:false,missed:false};
 }
 
 // ── Input ──
@@ -377,11 +383,24 @@ function handleInput(e){
   if(zzfxX&&zzfxX.state==='suspended')zzfxX.resume();
 
   if(state==='ready'){
-    // First tap: start clock + process hit. One tap, zero friction.
-    gameStartTime=now;
-    circleSpawnTime=now; // fair first-circle timing
-    state='playing';ctaAlpha=0;
-    hitCircle(ix,iy);
+    // Starter circle: visual pop only, nothing recorded
+    if(currentCircle){
+      const dx=ix-currentCircle.x,dy=iy-currentCircle.y;
+      if(Math.sqrt(dx*dx+dy*dy)<=currentCircle.r*1.2){
+        // Satisfying pop feedback
+        const c=currentCircle;
+        spawnParticles(c.x,c.y,15,c.color,4);
+        spawnRing(c.x,c.y,c.color,60);
+        flashColor=c.color;flashAlpha=0.1;
+        playBuf(sfx.ok);vib('medium');
+        currentCircle=null;
+        // Start real game
+        gameStartTime=now;
+        state='playing';ctaAlpha=0;
+        circleIndex=0; // reset — starter doesn't count
+        setTimeout(spawnCircle,250);
+      }
+    }
     return;
   }
   if(state==='playing'){hitCircle(ix,iy);return;}
@@ -402,10 +421,10 @@ canvas.addEventListener('mousedown',handleInput);
 // ── Share ──
 function buildScorecard(){
   if(!goData)return'';
-  const d=goData,t=getTitleForScore(finalScore);
+  const d=goData,t=getTitleForMs(heroMs);
   const dots=resultLog.map(r=>r==='fast'?'⚡':r==='ok'?'🟢':r==='slow'?'🟠':'🔴').join('');
-  return['🎯 Color Pop #'+seedCode,'',t.title+' — '+finalScore+'/100','',
-    d.hits+'/'+TOTAL+' hits · '+d.avgTime+'ms avg','',dots,'',
+  return['🎯 Color Pop #'+seedCode,'',t.title+' — '+heroMs+'ms','',
+    d.hits+'/'+TOTAL+' hits · '+d.avgTime+'ms raw avg','',dots,'',
     'Beat me → fullclear315.github.io/html-games/color-pop.html?s='+seedCode].join('\n');
 }
 function shareScore(){
@@ -576,9 +595,10 @@ function drawGameOver(now){
   const d=goData;
   const goElapsed=now-goStartTime;
   const countT=Math.min(1,goElapsed/GO_COUNT_DUR),countEased=easeOutCubic(countT);
-  const animScore=Math.round(countEased*d.score);
-  const animTitle=getTitleForScore(animScore),finalTitle=getTitleForScore(d.score);
-  const pctl=getPercentile(d.score);
+  const countStart=2000;
+  const animMs=countT<1?Math.round(countStart-(countStart-d.heroMs)*countEased):d.heroMs;
+  const animTitle=getTitleForMs(animMs),finalTitle=getTitleForMs(d.heroMs);
+  const pctl=getPercentile(d.heroMs);
 
   // Staggered element fade-in after count finishes
   const statsStart=GO_COUNT_DUR+GO_STAT_DELAY;
@@ -591,7 +611,8 @@ function drawGameOver(now){
 
   // ── Font sizes (W-based, capped) ──
   const titleFS=Math.min(W*0.075,42);
-  const scoreFS=Math.min(W*0.26,140);
+  const scoreFS=Math.min(W*0.22,120);
+  const msFS=Math.min(W*0.09,48);    // "ms" suffix
   const pillFS=Math.min(W*0.04,22);
   const pillH=Math.min(H*0.045,42);
   const statFS=Math.min(W*0.038,20);
@@ -615,8 +636,17 @@ function drawGameOver(now){
   fillText(titleInfo.title,W/2,y+titleFS/2,titleFS,titleInfo.color,'center','800');
   y+=titleFS+g1;
 
-  // ── 2. HERO Score — dominant ──
-  fillText(animScore.toString(),W/2,Math.round(y+scoreFS*0.44),scoreFS,WHITE,'center','900');
+  // ── 2. HERO ms — dominant, with "ms" suffix ──
+  const numStr=animMs.toString();
+  ctx.font='900 '+Math.round(scoreFS)+'px '+FONT;
+  const numW=ctx.measureText(numStr).width;
+  ctx.font='600 '+Math.round(msFS)+'px '+FONT;
+  const msW=ctx.measureText('ms').width;
+  const heroTotalW=numW+msW+4;
+  const heroX=Math.round(W/2-heroTotalW/2);
+  const heroY=Math.round(y+scoreFS*0.44);
+  fillText(numStr,heroX+numW/2,heroY,scoreFS,WHITE,'center','900');
+  fillText('ms',Math.round(heroX+numW+4+msW/2),heroY,msFS,'rgba(240,240,245,0.5)','center','600');
   y+=scoreFS+g2;
 
   // ── 3. Percentile pill ──
@@ -636,7 +666,7 @@ function drawGameOver(now){
   const sa=sA(1);
   if(sa>0){
     ctx.globalAlpha=sa;
-    const statLine=d.hits+'/'+TOTAL+' hits · '+d.avgTime+'ms avg'+(d.bestStreak>=3?' · '+d.bestStreak+'🔥':'');
+    const statLine=d.hits+'/'+TOTAL+' hits · '+d.avgTime+'ms raw'+(d.misses>0?' · '+d.misses+' missed':'')+(d.bestStreak>=3?' · '+d.bestStreak+'🔥':'');
     fillText(statLine,W/2,Math.round(y+statFS*0.45),statFS,'rgba(240,240,245,0.45)','center','500');
     ctx.globalAlpha=1;
   }
