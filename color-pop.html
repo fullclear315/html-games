@@ -17,8 +17,8 @@ const FONT='-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
 const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
 const WHITE='#f0f0f5',GOLD='#ffd93d',GREEN='#2ed573',ORANGE='#ffa502',RED='#ff6b6b',ACCENT='#4d96ff',CYAN='#00cec9';
 const COLORS=['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff922b','#cc5de8','#20c997','#f06595'];
-const TOTAL=20, FAST_MS=400, OK_MS=700;
-const APPEAR_START=1800, APPEAR_END=1000;
+const TOTAL=20, FAST_MS=350, OK_MS=650;
+const APPEAR_START=1400, APPEAR_END=750;
 const PI=Math.PI;
 
 // ── Virtual Viewport ──
@@ -143,9 +143,9 @@ const GO_COUNT_DUR=1800, GO_STAT_DELAY=400, GO_STAT_STAGGER=120;
 function calcScore(avgMs,hits,miss){
   const totalTime=avgMs*hits+miss*2000;
   const effectiveAvg=totalTime/(hits+miss||1);
-  if(effectiveAvg<=175)return 100;
-  if(effectiveAvg>=2175)return 0;
-  return Math.round(100*(1-(effectiveAvg-175)/2000));
+  if(effectiveAvg<=200)return 100;
+  if(effectiveAvg>=2200)return 0;
+  return Math.round(100*(1-(effectiveAvg-200)/2000));
 }
 
 const TITLE_LADDER=[
@@ -164,7 +164,7 @@ function getTitleForScore(s){
   return t;
 }
 function getPercentile(s){
-  const mean=55,sd=18,z=(s-mean)/(sd*Math.SQRT2);
+  const mean=48,sd=16,z=(s-mean)/(sd*Math.SQRT2);
   const t=1/(1+0.3275911*Math.abs(z));
   const poly=t*(0.254829592+t*(-0.284496736+t*(1.421413741+t*(-1.453152027+t*1.061405429))));
   const erf=1-poly*Math.exp(-z*z);const cdf=0.5*(1+(z>=0?erf:-erf));
