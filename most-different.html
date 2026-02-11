@@ -1,0 +1,958 @@
+<!--
+  Game: Odd One Out
+  Mechanic: Grid of shapes (square/hex/ring layouts), ALL noisy on ALL axes. One is MORE different.
+  Hue spread per round (colorblind-safe: signal is always lightness, rotation, or size — never hue).
+  Compound diffs from round 5+. Miss penalty: -2s timer, keep searching.
+-->
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Odd One Out</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#000;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}canvas{display:block;position:absolute;top:0;left:0}</style>
+</head><body>
+<canvas id="c"></canvas>
+<script>
+const FONT='-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+const GRID_BG='#141428',WHITE='#f0f0f5',GOLD='#ffd54f',GREEN='#4caf50',ORANGE='#ff9800',RED='#ef5350',CYAN='#26c6da',ACCENT='#7c4dff';
+const TIER_COLORS=[GOLD,GREEN,'#8bc34a',ORANGE,RED];
+const DIM_WHITE='rgba(240,240,245,0.35)';
+const PI=Math.PI,SQRT3=Math.sqrt(3);
+
+let W,H,dpr,VW,VH,VX,VY,lastRW=0,lastRH=0;
+const MAX_ASPECT=9/16;
+function resize(){
+  const rw=window.innerWidth,rh=window.innerHeight;
+  if(rw===lastRW&&rh===lastRH)return;lastRW=rw;lastRH=rh;dpr=Math.min(window.devicePixelRatio||1,2);
+  canvas.width=Math.round(rw*dpr);canvas.height=Math.round(rh*dpr);canvas.style.width=rw+'px';canvas.style.height=rh+'px';
+  if(rw/rh>MAX_ASPECT){VW=Math.round(rh*MAX_ASPECT);VH=rh;VX=Math.round((rw-VW)/2);VY=0;}
+  else{VW=rw;VH=rh;VX=0;VY=0;}W=VW;H=VH;
+  ctx.setTransform(dpr,0,0,dpr,0,0);cachedBgGrad=null;
+}
+
+// ── PRNG ──
+let gameSeed=0,rng=Math.random;
+function mulberry32(s){s=s|0;return function(){s=(s+0x6D2B79F5)|0;let t=Math.imul(s^(s>>>15),1|s);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};}
+function hashSeed(s,r,d){let h=s^(r*2654435761)^(d*40503);h=Math.imul(h^(h>>>16),0x45d9f3b);h=Math.imul(h^(h>>>13),0x45d9f3b);return(h^(h>>>16))>>>0;}
+function newSeed(){return(Math.random()*0xFFFFFFFF)>>>0;}
+function seedToCode(s){return s.toString(36).slice(0,6).padStart(6,'0');}
+function codeToSeed(c){return parseInt(c,36)||0;}
+function randInt(a,b){return Math.floor(rng()*(b-a+1))+a;}
+function randFloat(a,b){return a+rng()*(b-a);}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=randInt(0,i);[a[i],a[j]]=[a[j],a[i]];}}
+
+const urlSeed=new URLSearchParams(location.search).get('s');
+gameSeed=urlSeed?codeToSeed(urlSeed):newSeed();
+let seedCode=seedToCode(gameSeed);
+const isChallenge=!!urlSeed;
+
+// ── ZzFX Micro v1.3.2 by Frank Force — MIT License ──
+// Generates audio sample arrays; we pre-cache them as AudioBuffers for instant playback
+let zzfxV=.25,zzfxX;
+function zzfxG(p=1,k=.05,b=220,e=0,r=0,t=.1,q=0,D=1,u=0,y=0,v=0,z=0,l=0,E=0,A=0,F=0,c=0,w=1,m=0,B=0,N=0){
+  let M=Math,d=2*M.PI,R=44100,G=u*=500*d/R/R,C=b*=(1-k+2*k*M.random(k=[]))*d/R,
+  g=0,H=0,a=0,n=1,I=0,J=0,f=0,h=N<0?-1:1,x=d*h*N*2/R,L=M.cos(x),Z=M.sin,K=Z(x)/4,O=1+K,
+  X=-2*L/O,Y=(1-K)/O,P=(1+h*L)/2/O,Q=-(h+L)/O,S=P,T=0,U=0,V=0,W=0;e=R*e+9;m*=R;r*=R;t*=
+  R;c*=R;y*=500*d/R**3;A*=d/R;v*=d/R;z*=R;l=R*l|0;p*=zzfxV;for(h=e+m+r+t+c|0;a<h;k[a++]
+  =f*p)++J%(100*F|0)||(f=q?1<q?2<q?3<q?4<q?(g/d%1<D/2)*2-1:Z(g**3):M.max(M.min(M.tan(g)
+  ,1),-1):1-(2*g/d%2+2)%2:1-4*M.abs(M.round(g/d)-g/d):Z(g),f=(l?1-B+B*Z(d*a/l):1)*(4<q?
+  f:(f<0?-1:1)*M.abs(f)**D)*(a<e?a/e:a<e+m?1-(a-e)/m*(1-w):a<e+m+r?w:a<h-c?(h-a-c)/t*w:
+  0),f=c?f/2+(c>a?0:(a<h-c?1:(h-a)/c)*k[a-c|0]/2/p):f,N?f=W=S*T+Q*(T=U)+P*(U=f)-Y*V-X*(
+  V=W):0),x=(b+=u+=y)*M.cos(A*H++),g+=x+x*E*Z(a**5),n&&++n>z&&(b+=v,C+=v,n=0),!l||++I%l
+  ||(b=C,u=G,n=n||1);return k;
+}
+// Play pre-rendered samples from AudioBuffer — instant, zero latency
+function zzfxP(samples){
+  if(!zzfxX)return;
+  const b=zzfxX.createBuffer(1,samples.length,44100);
+  b.getChannelData(0).set(samples);
+  const s=zzfxX.createBufferSource();s.buffer=b;
+  s.connect(zzfxX.destination);s.start();return s;
+}
+// Play from pre-cached buffer (even faster — no sample copy needed)
+function playBuf(buf){
+  if(!zzfxX||!buf)return;
+  const s=zzfxX.createBufferSource();s.buffer=buf;
+  s.connect(zzfxX.destination);s.start();return s;
+}
+function toBuf(samples){
+  if(!zzfxX)return null;
+  const b=zzfxX.createBuffer(1,samples.length,44100);
+  b.getChannelData(0).set(samples);return b;
+}
+
+// ── Pre-cached sound buffers ──
+let sfx={};
+function initAudio(){
+  if(!zzfxX){
+    try{zzfxX=new(window.AudioContext||window.webkitAudioContext)();}catch(e){return;}
+    // Pre-render ALL sounds to AudioBuffers — playback is then instant
+    // ZzFX params: vol,rand,freq,atk,sus,rel,shape,curve,slide,dSlide,pJump,pJumpT,repeat,noise,mod,bitCrush,delay,susVol,decay,tremolo,filter
+    // Built from battle-tested ZzFX soundboard presets by Frank Force
+
+    // ── Correct taps: coin/sparkle family, descending reward by tier ──
+    // Gold (tier 0): 💰 Coin collect — bright triangle chime with massive pitch jump
+    sfx.correct0=toBuf(zzfxG(...[.7,,1675,,.06,.24,1,1.82,,,837,.06]));
+    // Green (tier 1): ✨ Sparkle — pleasant rising sparkle with delay echo
+    sfx.correct1=toBuf(zzfxG(...[.55,,539,0,.04,.29,1,1.92,,,567,.02,.02,,,,.04]));
+    // OK (tier 2): 🦘 Quick bop — short upward blip, triangle wave
+    sfx.correct2=toBuf(zzfxG(...[.45,,518,,.07,.19,1,.31,5.14]));
+    // Meh (tier 3): Soft pop — short, lower energy
+    sfx.correct3=toBuf(zzfxG(...[.35,,420,,.04,.13,1,.45,3.5]));
+    // Slow (tier 4): Minimal tap — barely there acknowledgment
+    sfx.correct4=toBuf(zzfxG(...[.25,,360,,.03,.08,0,.8]));
+
+    // ── Wrong tap: 💔 Heartbreak — descending sine, noise texture, clearly "nope" ──
+    sfx.wrong=toBuf(zzfxG(...[.4,,270,.01,.01,.35,0,.6,-11,,,,.08,4.5]));
+
+    // ── Timeout: Sad descending buzz — triangle wave, vibrato via dSlide ──
+    sfx.timeout=toBuf(zzfxG(...[.35,,340,.02,.12,.4,1,.5,,3.5,-80,.06,.1]));
+
+    // ── Reveal pop: Tiny blip for shape reveal animation ──
+    sfx.reveal=toBuf(zzfxG(...[.12,,680,,.01,.03,1,.9,8]));
+
+    // ── Game over good: Major arpeggio (C5-E5-G5-C6) using coin chime timbre ──
+    sfx.goGood0=toBuf(zzfxG(...[.45,,523,,.08,.22,1,1.5,,,260,.05]));
+    sfx.goGood1=toBuf(zzfxG(...[.5,,659,,.08,.22,1,1.5,,,330,.05]));
+    sfx.goGood2=toBuf(zzfxG(...[.55,,784,,.08,.25,1,1.5,,,392,.05]));
+    sfx.goGood3=toBuf(zzfxG(...[.65,,1047,,.1,.3,1,1.6,,,523,.06]));
+
+    // ── Game over bad: Minor descent (Eb4-C4-Ab3) with heartbreak timbre ──
+    sfx.goBad0=toBuf(zzfxG(...[.35,,311,.01,.06,.25,1,.7,-5,,,,.05]));
+    sfx.goBad1=toBuf(zzfxG(...[.3,,262,.01,.06,.28,1,.7,-6,,,,.06]));
+    sfx.goBad2=toBuf(zzfxG(...[.25,,208,.02,.08,.35,1,.6,-8,,,,.08]));
+
+    // ── Counting tick: short metallic click for score counter ──
+    sfx.tick=toBuf(zzfxG(...[.15,,1200,,.005,.01,1,1.8,,,400,.01]));
+
+    // Silent buffer to wake audio context
+    sfx.silent=toBuf(new Float32Array(441));
+  }
+  // Resume if suspended (required on iOS/mobile — must happen inside user gesture)
+  if(zzfxX.state==='suspended'){zzfxX.resume();playBuf(sfx.silent);}
+}
+function playCorrect(tier){playBuf(sfx['correct'+Math.min(tier,4)]);}
+function playWrong(){playBuf(sfx.wrong);}
+function playTimeout(){playBuf(sfx.timeout);}
+function playRevealPop(){if(Math.random()>0.4)return;playBuf(sfx.reveal);}
+function playGameOver(good){
+  // Ticking during count-up: accelerates then decelerates with easeOutCubic
+  // ~12 ticks spread across GO_COUNT_DUR (1800ms), denser at start
+  const tickCount=12;
+  for(let i=0;i<tickCount;i++){
+    // Inverse easeOutCubic to space ticks matching the animation curve
+    const t=i/tickCount;
+    const ms=t*GO_COUNT_DUR;
+    setTimeout(()=>playBuf(sfx.tick),ms);
+  }
+  // Arpeggio lands at count end — the payoff
+  const keys=good?['goGood0','goGood1','goGood2','goGood3']:['goBad0','goBad1','goBad2'];
+  keys.forEach((k,i)=>setTimeout(()=>playBuf(sfx[k]),GO_COUNT_DUR+i*160));
+}
+// Haptics: Telegram Mini App API (iOS+Android), navigator.vibrate fallback (Android web)
+const tgHaptic=window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.HapticFeedback;
+function vib(p){
+  try{
+    if(typeof p==='string'&&tgHaptic){
+      if(p==='success'||p==='error'||p==='warning')tgHaptic.notificationOccurred(p);
+      else tgHaptic.impactOccurred(p);
+      return;
+    }
+    if(tgHaptic){
+      const ms=Array.isArray(p)?p.reduce((a,b)=>a+b,0):p;
+      if(ms<=8)tgHaptic.impactOccurred('light');
+      else if(ms<=20)tgHaptic.impactOccurred('medium');
+      else if(ms<=40)tgHaptic.impactOccurred('heavy');
+      else tgHaptic.impactOccurred('rigid');
+      return;
+    }
+    if(navigator.vibrate)navigator.vibrate(p);
+  }catch(e){}
+}
+
+// ── Callouts ── (motivating messages between HUD and grid)
+let callout='',calloutAlpha=0,calloutColor=GOLD,calloutScale=1,lastCallout='';
+function showCallout(text,color){if(text===lastCallout)return;lastCallout=text;callout=text;calloutAlpha=1;calloutColor=color||GOLD;calloutScale=1.3;}
+function pick(arr){return arr[Math.random()*arr.length|0];}
+function calloutForCorrect(tier,streak,round){
+  // Priority 1: streak milestones (with actual count)
+  if(streak===10)return showCallout('👁️ 10 streak! Legendary!',GOLD);
+  if(streak===7)return showCallout('💥 7 in a row!',GOLD);
+  if(streak===5)return showCallout('🔥 5 streak!',GOLD);
+  // Priority 2: round-context messages
+  if(round===TOTAL_ROUNDS-1&&tier<=1)return showCallout(pick(['🎯 Perfect finish!','✨ Nailed the last one!','👁️ Clutch!']),GOLD);
+  if(round===Math.floor(TOTAL_ROUNDS/2)&&streak>=3)return showCallout('💪 Halfway, on fire!',TIER_COLORS[1]);
+  if(round===TOTAL_ROUNDS-2)return showCallout(pick(['🏁 Almost there!','⚡ Two to go!']),TIER_COLORS[1]);
+  // Priority 3: gold speed tier reactions
+  if(tier===0)return showCallout(pick(['⚡ Instant!','💨 Blink!','🎯 Sniper!','✨ Flash!','👁️ Razor!']),GOLD);
+  // Priority 4: early streak (3-4) — only if green tier or better
+  if(streak>=3&&tier<=1)return showCallout(pick(['🔥 Rolling!','⚡ Smooth!']),TIER_COLORS[1]);
+}
+function calloutForWrong(totalMisses){
+  // Only first miss of entire game is a callout — subsequent ones just get the floating text
+  if(totalMisses===1)return showCallout(pick(['😬 Oops!','👀 Tricky one!']),RED);
+  // Occasional callout on later misses but much rarer
+  if(totalMisses===3)return showCallout('🔍 Shake it off!',RED);
+}
+function calloutForTimeout(round){
+  if(round<3)return showCallout(pick(['⏰ Too slow!','⌛ Ran out!']),ORANGE);
+  return showCallout(pick(['⏰ Time!','🐌 Faster!']),ORANGE);
+}
+
+// ── Draw helpers ──
+function fillText(text,x,y,size,color,align,weight){
+  ctx.font=(weight||'600')+' '+Math.round(size)+'px '+FONT;
+  ctx.fillStyle=color||WHITE;ctx.textAlign=align||'center';ctx.textBaseline='middle';
+  ctx.fillText(text,Math.round(x),Math.round(y));
+}
+function roundRect(x,y,w,h,r){
+  x=Math.round(x);y=Math.round(y);w=Math.round(w);h=Math.round(h);r=Math.round(Math.min(r,w/2,h/2));
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+let cachedBgGrad=null;
+function getBgGrad(){if(!cachedBgGrad){cachedBgGrad=ctx.createLinearGradient(0,0,0,H);cachedBgGrad.addColorStop(0,'#0a0a1a');cachedBgGrad.addColorStop(1,'#12082a');}return cachedBgGrad;}
+function easeOutCubic(t){return 1-Math.pow(1-t,3);}
+function easeOutBack(t){const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2);}
+function lerp(a,b,t){return a+(b-a)*t;}
+
+// ── HSL color system (colorblind-safe: signal is lightness, never hue) ──
+function hslToHex(h,s,l){
+  h=((h%360)+360)%360;s=Math.max(0,Math.min(100,s))/100;l=Math.max(0,Math.min(100,l))/100;
+  const c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2;
+  let r,g,b;
+  if(h<60){r=c;g=x;b=0;}else if(h<120){r=x;g=c;b=0;}else if(h<180){r=0;g=c;b=x;}
+  else if(h<240){r=0;g=x;b=c;}else if(h<300){r=x;g=0;b=c;}else{r=c;g=0;b=x;}
+  r=Math.round((r+m)*255);g=Math.round((g+m)*255);b=Math.round((b+m)*255);
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
+function lerpColor(a,b,t){
+  const ar=parseInt(a.slice(1,3),16),ag=parseInt(a.slice(3,5),16),ab=parseInt(a.slice(5,7),16);
+  const br=parseInt(b.slice(1,3),16),bg=parseInt(b.slice(3,5),16),bb=parseInt(b.slice(5,7),16);
+  const r=Math.round(ar+(br-ar)*t),g=Math.round(ag+(bg-ag)*t),bl=Math.round(ab+(bb-ab)*t);
+  return '#'+((1<<24)+(r<<16)+(g<<8)+bl).toString(16).slice(1);
+}
+
+// ── Constants ──
+const TOTAL_ROUNDS=10,TIME_PER_ROUND=8000,MISS_PENALTY=2000;
+
+// ── Difficulty ──
+function getDifficulty(r){const t=r/(TOTAL_ROUNDS-1);return{signalMul:1-t*0.55,noiseMul:t*0.8};}
+const DIFF_CONFIG={
+  rotation:{signalMin:18,signalMax:35,noiseMax:8},
+  shade:{signalMin:18,signalMax:28,noiseMax:4},  // lightness units (HSL)
+  size:{signalMin:22,signalMax:38,noiseMax:10},
+};
+const CROSS_NOISE={rotation:12,shade:4,size:14}; // cross-axis noise
+
+// ── Layout generators ──
+function squarePositions(side){
+  const pos=[];
+  for(let r=0;r<side;r++)for(let c=0;c<side;c++)pos.push({x:c,y:r});
+  return pos;
+}
+function hexPositions(radius){
+  // Standard hex grid: iterate axial coords where max(|q|,|r|,|q+r|) <= radius
+  const pos=[];
+  for(let q=-radius;q<=radius;q++){
+    const r1=Math.max(-radius,-q-radius),r2=Math.min(radius,-q+radius);
+    for(let r=r1;r<=r2;r++){
+      pos.push({x:SQRT3*q+SQRT3/2*r,y:1.5*r});
+    }
+  }
+  return pos;
+}
+function brickPositions(cols,rows){
+  const pos=[];
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    pos.push({x:c+(r%2)*0.5,y:r*0.87});
+  }
+  return pos;
+}
+function diamondPositions(side){
+  const pos=[];
+  for(let r=0;r<side;r++)for(let c=0;c<side;c++){
+    pos.push({x:(c-r)*0.707,y:(c+r)*0.707});
+  }
+  return pos;
+}
+function scatterPositions(count){
+  const spread=Math.sqrt(count)*0.8;
+  const minD=spread*1.6/Math.sqrt(count);
+  const pos=[],maxAttempts=800;
+  for(let i=0;i<count;i++){
+    let placed=false;
+    for(let a=0;a<maxAttempts;a++){
+      const px=randFloat(-spread,spread),py=randFloat(-spread,spread);
+      let ok=true;
+      for(const p of pos){if((px-p.x)**2+(py-p.y)**2<minD*minD){ok=false;break;}}
+      if(ok){pos.push({x:px,y:py});placed=true;break;}
+    }
+    if(!placed){const a=2*PI*i/count;pos.push({x:Math.cos(a)*spread*0.9,y:Math.sin(a)*spread*0.9});}
+  }
+  return pos;
+}
+
+function fitToArea(positions,areaX,areaY,areaW,areaH){
+  if(positions.length<=1)return[{cx:areaX+areaW/2,cy:areaY+areaH/2,size:Math.min(areaW,areaH)*0.4}];
+
+  // Deduplicate positions (safety net)
+  const seen=new Set(),unique=[];
+  for(const p of positions){
+    const key=Math.round(p.x*1000)+','+Math.round(p.y*1000);
+    if(!seen.has(key)){seen.add(key);unique.push(p);}
+  }
+  positions=unique;
+  if(positions.length<=1)return[{cx:areaX+areaW/2,cy:areaY+areaH/2,size:Math.min(areaW,areaH)*0.4}];
+
+  let mnX=Infinity,mxX=-Infinity,mnY=Infinity,mxY=-Infinity;
+  for(const p of positions){if(p.x<mnX)mnX=p.x;if(p.x>mxX)mxX=p.x;if(p.y<mnY)mnY=p.y;if(p.y>mxY)mxY=p.y;}
+  let minD=Infinity;
+  for(let i=0;i<positions.length;i++)for(let j=i+1;j<positions.length;j++){
+    const d=Math.hypot(positions[i].x-positions[j].x,positions[i].y-positions[j].y);
+    if(d>0.001&&d<minD)minD=d;
+  }
+  if(!isFinite(minD))minD=1;
+
+  const spanX=mxX-mnX,spanY=mxY-mnY;
+  const totalW=spanX+minD,totalH=spanY+minD;
+
+  // Step 1: estimate cell size to know margin needed
+  const roughScale=Math.min(areaW/totalW,areaH/totalH);
+  const roughCell=Math.max(44,minD*roughScale*0.6);
+  // Step 2: inset area by shape visual radius so nothing overflows
+  const margin=roughCell*0.35;
+  const iX=areaX+margin,iY=areaY+margin;
+  const iW=Math.max(1,areaW-margin*2),iH=Math.max(1,areaH-margin*2);
+  // Step 3: scale positions to fit inset area
+  const scale=Math.min(iW/(totalW||1),iH/(totalH||1));
+  // Step 4: derive cellSize from actual pixel spacing — GUARANTEED no overlap
+  // Drawing uses size*0.5, rotated square worst case extends size*0.5*sqrt(2)=size*0.707
+  // Two adjacent need spacing >= 2*0.778*size, so size <= spacing/1.556
+  // Use 0.6 factor (= 1/1.667) for comfortable gap
+  const pixelMinD=minD*scale;
+  const cellSize=Math.max(44,Math.round(pixelMinD*0.6));
+
+  const cx=iX+iW/2,cy=iY+iH/2;
+  const midX=(mnX+mxX)/2,midY=(mnY+mxY)/2;
+  return positions.map(p=>({cx:Math.round(cx+(p.x-midX)*scale),cy:Math.round(cy+(p.y-midY)*scale),size:cellSize}));
+}
+
+// ── Game state ──
+let state='revealing';
+let round=0,score=0,displayScore=0,scorePop=0;
+let streak=0,bestStreak=0,misses=0,roundMisses=0;
+let roundTimes=[],roundResults=[];
+let roundStartTime=0,gameStartTime=0;
+let feedbackTimer=0,feedbackCorrect=false,feedbackIdx=-1;
+let firstInteraction=false;
+let shakeX=0,shakeY=0;
+let revealStartTime=0;
+const REVEAL_STAGGER=35;
+let revealOrder=[];
+let cells=[],oddIndex=0,signalAxes=[],layoutType='square';
+let oddNormal={rotation:0,color:'#fff',scale:1};
+let wrongCells=new Set(),wrongFlashes=[];
+let particles=[],rings=[],floatingTexts=[];
+let flashAlpha=0,flashColor=GOLD;
+let goStartTime=0;
+const GO_COUNT_DUR=1800,GO_STAT_DELAY=400,GO_STAT_STAGGER=120;
+
+// ── Shapes ──
+const SHAPE_POOL=['circle','square','triangle','diamond','hexagon','star5','pentagon','star6'];
+const SYMMETRY_ORDER={circle:Infinity,square:4,diamond:2,triangle:3,pentagon:5,hexagon:6,star5:5,star6:6};
+const ROTATION_ELIGIBLE=new Set(['triangle','square','diamond']);
+
+function getSquareSize(r){if(r<2)return 3;return 4;} // max 4×4=16
+function getRings(r){if(r<3)return 1;return 2;} // max 19
+function getBrickDims(r){if(r<2)return[3,3];if(r<4)return[4,3];return[4,4];} // max 16
+function getScatterCount(r){const s=getSquareSize(r);return s*s;}
+
+// ── Generate Round ──
+function generateRound(r){
+  rng=mulberry32(hashSeed(gameSeed,r,0));
+  const diff=getDifficulty(r);
+
+  // Pick layout (first 3 rounds: symmetrical grids only)
+  const layoutPool=['square','hex','brick','diamond'];
+  layoutType=layoutPool[randInt(0,layoutPool.length-1)];
+
+  // Generate positions
+  let rawPos;
+  if(layoutType==='square'){rawPos=squarePositions(getSquareSize(r));}
+  else if(layoutType==='hex'){rawPos=hexPositions(getRings(r));}
+  else if(layoutType==='brick'){const d=getBrickDims(r);rawPos=brickPositions(d[0],d[1]);}
+  else if(layoutType==='diamond'){rawPos=diamondPositions(Math.min(getSquareSize(r),3));}
+
+  // Fit to screen area
+  const u=Math.min(W,H),safePad=u*0.05;
+  const topHUD=H*0.16,bottomDock=u*0.09;
+  const areaX=safePad,areaY=topHUD+safePad;
+  const areaW=W-safePad*2,areaH=H-topHUD-bottomDock-safePad*2;
+  const cellPos=fitToArea(rawPos,areaX,areaY,areaW,areaH);
+  const count=cellPos.length;
+
+  // Shape + style
+  const shapeType=SHAPE_POOL[randInt(0,SHAPE_POOL.length-1)];
+  const baseOutline=rng()>0.55;
+
+  // HSL base color — avoid hues near feedback ring colors
+  // Green ring ~120°, Red ring ~0°/360°, Orange ring ~30°
+  // Safe bands: 180-340 (cyans, blues, purples, magentas)
+  const safeHues=[[180,340]]; // single safe band
+  const bandStart=safeHues[0][0],bandEnd=safeHues[0][1];
+  const baseHue=randFloat(bandStart,bandEnd);
+  const baseSat=randFloat(60,80);
+  const baseLight=randFloat(48,62);
+
+  // Signal axes (first 3 rounds: no shade signal — only rotation/size)
+  let allAxes=ROTATION_ELIGIBLE.has(shapeType)?['rotation','shade','size']:['shade','size'];
+  if(r<3)allAxes=ROTATION_ELIGIBLE.has(shapeType)?['rotation','size']:['size'];
+  const isCompound=r>=5&&rng()>0.5&&allAxes.length>=2;
+  if(isCompound){
+    const a=[...allAxes];shuffle(a);
+    signalAxes=a.slice(0,2);
+  }else{
+    signalAxes=[allAxes[randInt(0,allAxes.length-1)]];
+  }
+  const sigScale=isCompound?0.6:1.0;
+
+  // Base rotation (snap to symmetry for rotation-signal rounds)
+  let baseRotation=0;
+  const hasRotSignal=signalAxes.includes('rotation');
+  if(hasRotSignal){
+    const order=SYMMETRY_ORDER[shapeType]||1;
+    const period=2*PI/order;
+    baseRotation=randInt(0,order-1)*period;
+  }
+
+  oddIndex=randInt(0,count-1);
+
+  // Build cells
+  cells=[];
+  for(let i=0;i<count;i++){
+    const cp=cellPos[i],isOdd=i===oddIndex;
+
+    // Start from base
+    let cellRotation,cellScale,cellHue,cellSat,cellLight;
+
+    // Cross-axis noise on ALL axes
+    // Rotation: free spin if not signal, small wobble if signal
+    if(shapeType==='circle'){
+      cellRotation=0;
+    }else if(hasRotSignal){
+      cellRotation=baseRotation+randFloat(-CROSS_NOISE.rotation,CROSS_NOISE.rotation)*diff.noiseMul*PI/180;
+    }else{
+      cellRotation=randFloat(0,PI*2); // free rotation for variety
+    }
+
+    // Hue spread (decorative, NOT signal — colorblind safe)
+    cellHue=baseHue+randFloat(-22,22);
+    cellSat=baseSat+randFloat(-6,6);
+    // Lightness cross-noise
+    cellLight=baseLight+randFloat(-CROSS_NOISE.shade,CROSS_NOISE.shade)*diff.noiseMul;
+    // Size cross-noise
+    cellScale=1+randFloat(-CROSS_NOISE.size,CROSS_NOISE.size)*diff.noiseMul/100;
+
+    // Snapshot normal state before signal override
+    if(isOdd)oddNormal={rotation:cellRotation,hue:cellHue,sat:cellSat,light:cellLight,scale:cellScale};
+
+    // Apply signal(s) on signal axes
+    for(const axis of signalAxes){
+      const cfg=DIFF_CONFIG[axis];
+      const signal=(cfg.signalMin+(cfg.signalMax-cfg.signalMin)*diff.signalMul)*sigScale;
+      const noise=cfg.noiseMax*diff.noiseMul;
+
+      if(axis==='rotation'&&ROTATION_ELIGIBLE.has(shapeType)){
+        // Overwrite cross-noise with primary noise
+        cellRotation=baseRotation+randFloat(-noise,noise)*PI/180;
+        if(isOdd){const sign=rng()>0.5?1:-1;cellRotation=baseRotation+sign*signal*PI/180;}
+      }else if(axis==='shade'){
+        // Overwrite lightness with primary noise
+        cellLight=baseLight+randFloat(-noise,noise);
+        if(isOdd){const sign=rng()>0.5?1:-1;cellLight=baseLight+sign*signal;}
+      }else if(axis==='size'){
+        cellScale=1+randFloat(-noise,noise)/100;
+        if(isOdd)cellScale=1+signal/100;
+      }
+    }
+
+    const color=hslToHex(cellHue,cellSat,cellLight);
+    if(isOdd)oddNormal.color=hslToHex(oddNormal.hue,oddNormal.sat,oddNormal.light);
+
+    cells.push({cx:cp.cx,cy:cp.cy,size:cp.size,shapeType,color,
+      rotation:cellRotation,scale:cellScale,outline:baseOutline,isOdd});
+  }
+
+  // Reveal order: center outward (Euclidean distance from centroid)
+  let avgX=0,avgY=0;
+  for(const c of cells){avgX+=c.cx;avgY+=c.cy;}
+  avgX/=count;avgY/=count;
+  const idx=cells.map((_,i)=>i);
+  idx.sort((a,b)=>{
+    const da=Math.hypot(cells[a].cx-avgX,cells[a].cy-avgY);
+    const db=Math.hypot(cells[b].cx-avgX,cells[b].cy-avgY);
+    return da!==db?da-db:rng()-0.5;
+  });
+  revealOrder=idx;
+  rng=Math.random;
+  wrongCells=new Set();wrongFlashes=[];roundMisses=0;
+}
+
+// ── Shape drawing ──
+function drawShapePath(type,s){
+  switch(type){
+    case 'circle':ctx.beginPath();ctx.arc(0,0,s,0,PI*2);break;
+    case 'square':roundRect(-s,-s,s*2,s*2,s*0.15);break;
+    case 'triangle':{const h=s*1.1;ctx.beginPath();ctx.moveTo(0,-h);ctx.lineTo(s,h*0.7);ctx.lineTo(-s,h*0.7);ctx.closePath();break;}
+    case 'diamond':ctx.beginPath();ctx.moveTo(0,-s*1.2);ctx.lineTo(s*0.8,0);ctx.lineTo(0,s*1.2);ctx.lineTo(-s*0.8,0);ctx.closePath();break;
+    case 'pentagon':{ctx.beginPath();for(let i=0;i<5;i++){const a=PI*2/5*i-PI/2;const m=i===0?'moveTo':'lineTo';ctx[m](Math.cos(a)*s,Math.sin(a)*s);}ctx.closePath();break;}
+    case 'hexagon':{ctx.beginPath();for(let i=0;i<6;i++){const a=PI/3*i-PI/6;const m=i===0?'moveTo':'lineTo';ctx[m](Math.cos(a)*s,Math.sin(a)*s);}ctx.closePath();break;}
+    case 'star5':{ctx.beginPath();for(let i=0;i<10;i++){const a=PI/5*i-PI/2,r=i%2===0?s:s*0.45;const m=i===0?'moveTo':'lineTo';ctx[m](Math.cos(a)*r,Math.sin(a)*r);}ctx.closePath();break;}
+    case 'star6':{ctx.beginPath();for(let i=0;i<12;i++){const a=PI/6*i-PI/2,r=i%2===0?s:s*0.5;const m=i===0?'moveTo':'lineTo';ctx[m](Math.cos(a)*r,Math.sin(a)*r);}ctx.closePath();break;}
+  }
+}
+function drawShape(cx,cy,size,type,color,rotation,scale,outline,animScale){
+  const ts=scale*(animScale||1);if(ts<=0.01)return;
+  const s=size*0.5*ts;
+  ctx.save();ctx.translate(Math.round(cx),Math.round(cy));ctx.rotate(rotation);
+  if(outline){ctx.strokeStyle=color;ctx.lineWidth=2.5;drawShapePath(type,s);ctx.stroke();}
+  else{ctx.fillStyle=color;drawShapePath(type,s);ctx.fill();}
+  ctx.restore();
+}
+
+// ── Effects ──
+function spawnParticles(x,y,n,color,speed){for(let i=0;i<n;i++){const a=Math.random()*PI*2,v=(0.5+Math.random())*speed;particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-1,alpha:1,size:2+Math.random()*3,color,gravity:0.08+Math.random()*0.04});}}
+function spawnRing(x,y,color,maxR,w){rings.push({x,y,r:0,maxR,alpha:0.8,color,width:w||3,speed:maxR/20});}
+
+// ── Scoring ──
+function calcRoundScore(ms){if(ms<=150)return 1000;if(ms<=600)return Math.round(1000-(ms-150)/450*300);if(ms<=1500)return Math.round(700-(ms-600)/900*450);if(ms<=4000)return Math.round(250-(ms-1500)/2500*180);return Math.round(Math.max(30,70-(ms-4000)/4000*40));}
+function getTier(pts){if(pts>=800)return 0;if(pts>=500)return 1;if(pts>=300)return 2;if(pts>=150)return 3;return 4;}
+
+// ── Titles + percentile ──
+const TITLE_LADDER=[
+  {min:0,title:'🙈 Totally Lost',color:RED},{min:0.18,title:'👓 Blurry Vision',color:'#e08050'},
+  {min:0.30,title:'🔍 Squinting Hard',color:ORANGE},{min:0.42,title:'👀 Slow Spotter',color:'#8bb8d0'},
+  {min:0.55,title:'🎯 Keen Eye',color:CYAN},{min:0.68,title:'⚡ Sharp Reflexes',color:GREEN},
+  {min:0.80,title:'🦅 Hawk Vision',color:'#a0e86c'},{min:0.92,title:'👁️‍🗨️ Omniscient',color:GOLD},
+];
+function getTitleForScore(s){const pct=s/(TOTAL_ROUNDS*1000);let t=TITLE_LADDER[0];for(let i=TITLE_LADDER.length-1;i>=0;i--)if(pct>=TITLE_LADDER[i].min){t=TITLE_LADDER[i];break;}return t;}
+function getPercentile(s){
+  const mean=5000,sd=1500,z=(s-mean)/(sd*Math.SQRT2);
+  const t=1/(1+0.3275911*Math.abs(z));
+  const poly=t*(0.254829592+t*(-0.284496736+t*(1.421413741+t*(-1.453152027+t*1.061405429))));
+  const erf=1-poly*Math.exp(-z*z);const cdf=0.5*(1+(z>=0?erf:-erf));
+  return Math.max(1,Math.min(99,Math.round(cdf*100)));
+}
+
+// ── Reveal ──
+let revealedCells=new Set();
+function getRevealDuration(){return cells.length*REVEAL_STAGGER+250;}
+function getCellAnimScale(i,now){
+  if(state!=='revealing')return 1;
+  const pos=revealOrder.indexOf(i);
+  const el=now-revealStartTime-pos*REVEAL_STAGGER;
+  if(el<0)return 0;
+  if(!revealedCells.has(i)){revealedCells.add(i);playRevealPop();if(pos%4===0&&tgHaptic)try{tgHaptic.selectionChanged();}catch(e){}}
+  if(el>300)return 1;
+  const t=el/300;return t<0.55?(t/0.55)*1.15:1.15-0.15*((t-0.55)/0.45);
+}
+
+// ── Game flow ──
+function startGame(){
+  round=0;score=0;displayScore=0;scorePop=0;streak=0;bestStreak=0;misses=0;
+  roundTimes=[];roundResults=[];particles=[];rings=[];floatingTexts=[];
+  flashAlpha=0;shakeX=0;shakeY=0;firstInteraction=false;gameStartTime=0;
+  revealedCells=new Set();
+  generateRound(round);revealStartTime=performance.now();state='revealing';
+}
+function nextRound(){
+  round++;if(round>=TOTAL_ROUNDS){endGame();return;}
+  particles=[];rings=[];floatingTexts=[];flashAlpha=0;
+  revealedCells=new Set();
+  generateRound(round);revealStartTime=performance.now();state='revealing';
+}
+function getElapsed(now){return now-roundStartTime;}
+function handleCorrectTap(idx,now){
+  const elapsed=getElapsed(now),pts=calcRoundScore(elapsed),tier=getTier(pts);
+  roundTimes.push(elapsed);roundResults.push(tier+1);
+  score+=pts;scorePop=Math.min(0.3,pts/3000);streak++;if(streak>bestStreak)bestStreak=streak;
+  const c=cells[idx],tc=TIER_COLORS[tier],intensity=pts/1000;
+  floatingTexts.push({text:'+'+pts,color:tc,x:c.cx,y:c.cy-c.size*0.6,alpha:1,vy:-2,size:0.075,scale:1.5});
+  playCorrect(tier);
+  // Haptics
+  if(tier===0)vib('success');
+  else if(tier<=1)vib('medium');
+  else if(tier<=2)vib('light');
+  else vib('light');
+  // Callouts
+  calloutForCorrect(tier,streak,round);
+  feedbackCorrect=true;feedbackIdx=idx;feedbackTimer=now;state='feedback';
+}
+function handleWrongTap(idx,now){
+  roundMisses++;misses++;streak=0;wrongCells.add(idx);wrongFlashes.push({idx,time:now});
+  roundStartTime-=MISS_PENALTY;
+  const c=cells[idx];
+  floatingTexts.push({text:'-2s',color:RED,x:c.cx,y:c.cy-c.size*0.5,alpha:1,vy:-2,size:0.06,scale:1.3});
+  shakeX=5;shakeY=5;playWrong();vib('error');
+  calloutForWrong(misses);
+  if(getElapsed(now)>=TIME_PER_ROUND)handleTimeout();
+}
+function handleTimeout(){
+  if(state!=='playing')return; // guard against double-fire
+  roundResults.push(0);shakeX=5;shakeY=5;
+  playTimeout();vib('warning');calloutForTimeout(round);
+  feedbackCorrect=false;feedbackIdx=oddIndex;feedbackTimer=performance.now();state='feedback';
+}
+function endGame(){
+  state='gameover';goStartTime=performance.now();
+  const elapsed=(performance.now()-gameStartTime)/1000;
+  playGameOver(score>=TOTAL_ROUNDS*400);vib('heavy');
+  window.dispatchEvent(new CustomEvent('gameComplete',{detail:{score,maxScore:TOTAL_ROUNDS*1000,duration:Math.round(elapsed),won:true}}));
+}
+
+// ── Share ──
+function shareText(text){
+  if(navigator.share){navigator.share({text}).catch(()=>{});return;}
+  try{const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;left:0;top:0;opacity:0.01;width:1px;height:1px';document.body.appendChild(ta);ta.focus();ta.select();ta.setSelectionRange(0,ta.value.length);const ok=document.execCommand('copy');document.body.removeChild(ta);if(ok){copiedFlash=performance.now();return;}}catch(e){}
+  try{navigator.clipboard.writeText(text).catch(()=>{});}catch(e){}
+}
+let copiedFlash=0;
+
+// ── Input ──
+let lastInputTime=0;
+function handleInput(e){
+  const now=performance.now();
+  if(now-lastInputTime<50)return;lastInputTime=now;e.preventDefault();
+  const t=e.touches?e.touches[0]:e;
+  const rect=canvas.getBoundingClientRect();
+  const x=t.clientX-rect.left-VX,y=t.clientY-rect.top-VY;
+
+  if(state==='revealing'){initAudio();return;}
+  if(state==='playing'){
+    // Distance-based hit test (works for all layouts)
+    let best=-1,bestD=Infinity;
+    for(let i=0;i<cells.length;i++){
+      if(wrongCells.has(i))continue;
+      const c=cells[i],dx=x-c.cx,dy=y-c.cy,d=dx*dx+dy*dy;
+      const hr=c.size/2;
+      if(d<hr*hr&&d<bestD){best=i;bestD=d;}
+    }
+    if(best>=0){
+      if(!firstInteraction){firstInteraction=true;gameStartTime=now;roundStartTime=now;}
+      initAudio();
+      if(cells[best].isOdd)handleCorrectTap(best,now);
+      else handleWrongTap(best,now);
+    }
+    return;
+  }
+  if(state==='gameover'){
+    if(now-goStartTime<GO_COUNT_DUR+200)return;
+    const btnW=Math.min(W*0.40,200),btnH=Math.max(H*0.06,50);
+    const btnY=H-Math.max(H*0.06,30)-btnH,gapBtn=Math.min(W*0.03,14);
+    const totalBtnW=btnW*2+gapBtn,btnStartX=(W-totalBtnW)/2;
+    if(x>=btnStartX&&x<=btnStartX+btnW&&y>=btnY&&y<=btnY+btnH){
+      gameSeed=urlSeed?codeToSeed(urlSeed):newSeed();seedCode=seedToCode(gameSeed);startGame();return;
+    }
+    if(x>=btnStartX+btnW+gapBtn&&x<=btnStartX+totalBtnW&&y>=btnY&&y<=btnY+btnH){
+      const info=getTitleForScore(score),pctl=getPercentile(score);
+      const avgTime=roundTimes.length>0?Math.round(roundTimes.reduce((a,b)=>a+b,0)/roundTimes.length):0;
+      const dots=roundResults.map(r=>r===0?'🔴':r<=1?'🟡':r<=2?'🟢':r<=3?'🟡':'🟠').join('');
+      shareText(`👁️ Odd One Out #${seedCode}\n\n${info.title} — ${score} pts\nTop ${100-pctl}% of players\n\n⏱ Avg: ${avgTime}ms · 🔥 Streak: ${bestStreak} · ✓ ${TOTAL_ROUNDS-misses}/${TOTAL_ROUNDS}\n\n${dots}\n\nBeat me → https://fullclear315.github.io/html-games/most-different.html?s=${seedCode}`);
+      return;
+    }
+  }
+}
+canvas.addEventListener('touchstart',handleInput,{passive:false});
+canvas.addEventListener('mousedown',handleInput);
+
+// ── Draw HUD ──
+function drawHUD(now){
+  const u=Math.min(W,H),safePad=u*0.035,topY=Math.max(14,H*0.025);
+
+  // Round counter
+  fillText(`${round+1}/${TOTAL_ROUNDS}`,W/2,topY+u*0.028,u*0.038,'rgba(240,240,245,0.6)','center','600');
+
+  // Timer bar — well separated below round counter
+  const barW=W*0.7,barH=Math.max(5,u*0.013),barX=(W-barW)/2,barY=topY+u*0.065;
+  ctx.fillStyle='rgba(255,255,255,0.1)';roundRect(barX,barY,barW,barH,barH/2);ctx.fill();
+  if(state==='playing'){
+    if(firstInteraction){
+      const el=getElapsed(now),pct=Math.max(0,1-el/TIME_PER_ROUND);
+      const liveTier=getTier(calcRoundScore(el));
+      ctx.fillStyle=TIER_COLORS[liveTier];
+      roundRect(barX,barY,Math.max(0,Math.round(barW*pct)),barH,barH/2);ctx.fill();
+      if(el>=TIME_PER_ROUND)handleTimeout();
+    }else{ctx.fillStyle=TIER_COLORS[0];roundRect(barX,barY,barW,barH,barH/2);ctx.fill();}
+  }else if(state==='revealing'){ctx.fillStyle=TIER_COLORS[0];roundRect(barX,barY,barW,barH,barH/2);ctx.fill();}
+
+  // Milestone dots — well separated below timer bar
+  const dotY=topY+u*0.105,dotR=Math.max(4,u*0.012);
+  const dotGap=Math.min(u*0.032,(W*0.7)/TOTAL_ROUNDS);
+  const dotsW=TOTAL_ROUNDS*dotGap,dotStartX=W/2-dotsW/2+dotGap/2;
+  for(let i=0;i<TOTAL_ROUNDS;i++){
+    const dx=dotStartX+i*dotGap;
+    if(i<roundResults.length&&roundResults[i]===1){
+      // Gold result: diamond
+      ctx.save();ctx.translate(Math.round(dx),Math.round(dotY));ctx.rotate(PI/4);
+      ctx.fillStyle=GOLD;ctx.fillRect(-Math.round(dotR*0.8),-Math.round(dotR*0.8),Math.round(dotR*1.6),Math.round(dotR*1.6));
+      ctx.restore();
+    }else{
+      ctx.beginPath();ctx.arc(Math.round(dx),Math.round(dotY),Math.round(dotR),0,PI*2);
+      if(i<roundResults.length)ctx.fillStyle=roundResults[i]===0?RED:TIER_COLORS[roundResults[i]-1];
+      else if(i===round)ctx.fillStyle=WHITE;else ctx.fillStyle='rgba(255,255,255,0.15)';
+      ctx.fill();
+    }
+  }
+  const dockH=u*0.09,dockY=H-dockH;
+  ctx.fillStyle='rgba(10,10,26,0.85)';ctx.fillRect(0,Math.round(dockY),W,dockH);
+  ctx.fillStyle='rgba(255,255,255,0.06)';ctx.fillRect(0,Math.round(dockY),W,1);
+  if(displayScore<score)displayScore+=Math.max(1,Math.ceil((score-displayScore)*0.15));
+  if(displayScore>score)displayScore=score;
+  ctx.save();ctx.translate(Math.round(safePad+u*0.04),Math.round(dockY+dockH/2));
+  ctx.scale(1+scorePop,1+scorePop);fillText(displayScore.toString(),0,0,u*0.048,ACCENT,'left','800');
+  ctx.restore();scorePop*=0.88;
+  if(streak>1)fillText('🔥'+streak,W-safePad,dockY+dockH/2,u*0.04,GOLD,'right','700');
+}
+
+// ── Draw Grid ──
+function drawGrid(now){
+  // Pass 1: shapes
+  for(let i=0;i<cells.length;i++){
+    const c=cells[i];
+    const animScale=state==='revealing'?getCellAnimScale(i,now):1;
+    if(animScale<=0.01)continue;
+    const shapeSize=c.size*0.7;
+
+    let drawColor=c.color,drawRot=c.rotation,drawScale=c.scale;
+    if(state==='feedback'&&i===oddIndex){
+      const fb=now-feedbackTimer;
+      let blinkT=0;
+      if(fb<150)blinkT=0;
+      else if(fb<500)blinkT=easeOutCubic((fb-150)/350);
+      else if(fb<850)blinkT=1-easeOutCubic((fb-500)/350);
+      drawColor=lerpColor(c.color,oddNormal.color,blinkT);
+      drawRot=lerp(c.rotation,oddNormal.rotation,blinkT);
+      drawScale=lerp(c.scale,oddNormal.scale,blinkT);
+    }
+    drawShape(c.cx,c.cy,shapeSize,c.shapeType,drawColor,drawRot,drawScale,c.outline,animScale);
+  }
+  // Pass 2: feedback rings (on top of all shapes)
+  for(let i=0;i<cells.length;i++){
+    const c=cells[i];
+    const animScale=state==='revealing'?getCellAnimScale(i,now):1;
+    if(animScale<=0.01)continue;
+    const shapeSize=c.size*0.7;
+    // Ring radius: based on actual visual extent of shape + generous padding
+    // Visual radius = shapeSize * 0.5 * scale; circles fill this fully, pointy shapes less
+    const shapeVis=shapeSize*0.5*Math.max(c.scale,1);
+    const isRound=c.shapeType==='circle'||c.shapeType==='hexagon';
+    const ringPad=isRound?shapeSize*0.18:shapeSize*0.12;
+    const ringR=shapeVis+ringPad;
+
+    // Wrong tap: red ring + X
+    if(wrongCells.has(i)){
+      const wf=wrongFlashes.find(f=>f.idx===i);
+      const age=wf?now-wf.time:9999,alpha=Math.max(0.1,1-age/800);
+      ctx.save();ctx.translate(Math.round(c.cx),Math.round(c.cy));ctx.scale(animScale,animScale);
+      ctx.strokeStyle=`rgba(239,83,80,${alpha})`;ctx.lineWidth=2.5;
+      ctx.beginPath();ctx.arc(0,0,ringR,0,PI*2);ctx.stroke();
+      ctx.globalAlpha=alpha*0.5;ctx.strokeStyle=RED;ctx.lineWidth=2;
+      const m=ringR*0.35;ctx.beginPath();ctx.moveTo(-m,-m);ctx.lineTo(m,m);ctx.moveTo(m,-m);ctx.lineTo(-m,m);ctx.stroke();
+      ctx.globalAlpha=1;ctx.restore();
+    }
+
+    // Feedback: ring around odd cell — expands once then holds steady
+    if(state==='feedback'&&i===oddIndex){
+      const fb=now-feedbackTimer;
+      const expand=Math.min(1,fb/200);
+      const col=feedbackCorrect?GREEN:ORANGE;
+      ctx.save();ctx.translate(Math.round(c.cx),Math.round(c.cy));ctx.scale(animScale,animScale);
+      ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.globalAlpha=0.8*Math.min(1,fb/100);
+      ctx.beginPath();ctx.arc(0,0,ringR*(0.9+0.1*easeOutCubic(expand)),0,PI*2);ctx.stroke();
+      ctx.globalAlpha=1;ctx.restore();
+    }
+    // Feedback: red ring on wrong-tapped cell (timeout)
+    if(state==='feedback'&&i===feedbackIdx&&!feedbackCorrect&&i!==oddIndex){
+      ctx.save();ctx.translate(Math.round(c.cx),Math.round(c.cy));ctx.scale(animScale,animScale);
+      ctx.strokeStyle=RED;ctx.lineWidth=2.5;ctx.globalAlpha=0.7;
+      ctx.beginPath();ctx.arc(0,0,ringR,0,PI*2);ctx.stroke();
+      ctx.globalAlpha=1;ctx.restore();
+    }
+  }
+}
+
+// ── CTA + Callouts ──
+let ctaPulse=0;
+function drawCTA(){
+  const u=Math.min(W,H);
+  const topHUD=H*0.16,safePad=u*0.05;
+  const ctaY=topHUD+safePad*0.5;
+
+  // Callout (fades over time, shows in the gap)
+  if(calloutAlpha>0.01){
+    calloutAlpha*=0.97;
+    if(calloutScale>1)calloutScale+=(1-calloutScale)*0.12;
+    ctx.globalAlpha=Math.min(1,calloutAlpha);
+    ctx.save();ctx.translate(W/2,ctaY);ctx.scale(calloutScale,calloutScale);
+    fillText(callout,0,0,u*0.046,calloutColor,'center','800');
+    ctx.restore();ctx.globalAlpha=1;
+  }
+
+  // Pre-interaction CTA
+  if(!firstInteraction){
+    ctaPulse+=0.04;
+    const pulse=0.7+Math.sin(ctaPulse)*0.3;
+    fillText('⬇️ Find the odd one out!',W/2,ctaY,u*0.04,`rgba(240,240,245,${pulse})`,'center','700');
+    if(isChallenge)fillText('⚔️ Challenge #'+seedCode,W/2,ctaY+u*0.05,u*0.036,'rgba(255,213,79,0.7)','center','600');
+  }
+}
+
+// ── Effects ──
+function drawEffects(){
+  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=p.gravity;p.alpha-=0.025;if(p.alpha<=0){particles.splice(i,1);continue;}ctx.globalAlpha=p.alpha;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(Math.round(p.x),Math.round(p.y),Math.round(p.size),0,PI*2);ctx.fill();}
+  ctx.globalAlpha=1;
+  for(let i=rings.length-1;i>=0;i--){const r=rings[i];r.r+=r.speed;r.alpha-=0.04;if(r.alpha<=0){rings.splice(i,1);continue;}ctx.strokeStyle=r.color;ctx.lineWidth=Math.round(r.width);ctx.globalAlpha=r.alpha;ctx.beginPath();ctx.arc(Math.round(r.x),Math.round(r.y),Math.round(r.r),0,PI*2);ctx.stroke();}
+  ctx.globalAlpha=1;
+  for(let i=floatingTexts.length-1;i>=0;i--){const ft=floatingTexts[i];ft.y+=ft.vy;ft.alpha-=0.012;if(ft.scale&&ft.scale>1)ft.scale+=(1-ft.scale)*0.1;if(ft.alpha<=0){floatingTexts.splice(i,1);continue;}ctx.globalAlpha=ft.alpha;fillText(ft.text,ft.x,ft.y,Math.min(W,H)*ft.size*(ft.scale||1),ft.color,'center','800');}
+  ctx.globalAlpha=1;
+}
+
+// ── Game Over (animated) ──
+function drawGameOver(now){
+  const goElapsed=now-goStartTime;
+  const countT=Math.min(1,goElapsed/GO_COUNT_DUR),countEased=easeOutCubic(countT);
+  const animScore=Math.round(countEased*score);
+  const animTitle=getTitleForScore(animScore),finalTitle=getTitleForScore(score);
+  const pctl=getPercentile(score);
+  const avgTime=roundTimes.length>0?Math.round(roundTimes.reduce((a,b)=>a+b,0)/roundTimes.length):0;
+  const statsStart=GO_COUNT_DUR+GO_STAT_DELAY;
+  function sA(idx){const t=(goElapsed-statsStart-idx*GO_STAT_STAGGER)/300;if(t<0)return 0;return Math.min(1,easeOutCubic(t));}
+  function sS(idx){const t=(goElapsed-statsStart-idx*GO_STAT_STAGGER)/300;if(t<0)return 0.5;if(t>=1)return 1;return 0.5+0.5*easeOutBack(t);}
+
+  // ── Layout: responsive with caps for desktop ──
+  const btnW=Math.min(W*0.40,200),btnH=Math.max(H*0.06,50);
+  const btnY=H-Math.max(H*0.06,30)-btnH,gapBtn=Math.min(W*0.03,14);
+  const totalBtnW=btnW*2+gapBtn,btnStartX=(W-totalBtnW)/2;
+
+  // Font sizes: scale with W, cap for desktop readability
+  const titleFS=Math.min(W*0.075,42);
+  const scoreFS=Math.min(W*0.26,140);       // HERO — dominates
+  const pillFS=Math.min(W*0.04,22);
+  const pillH=Math.min(H*0.045,42);
+  const statFS=Math.min(W*0.048,26);
+  const statDim=Math.min(W*0.038,20);
+  const dotR=Math.max(6,Math.min(W*0.02,10));
+  const dotGap=Math.max(14,Math.min(W*0.055,24));
+
+  // Vertical spacing
+  const g1=Math.min(H*0.015,14);   // title → score
+  const g2=Math.min(H*0.025,22);   // score → pill
+  const g3=Math.min(H*0.02,18);    // pill → stats line
+  const g4=Math.min(H*0.035,30);   // stats → dots
+  const g5=Math.min(H*0.04,36);    // dots → buttons (not used, btnY is anchored)
+
+  // Total content height
+  const totalH=titleFS+g1+scoreFS+g2+pillH+g3+statFS+g4+dotR*2;
+  const topY=Math.max(20,H*0.04);
+  const contentH=(btnY-Math.min(H*0.02,16))-topY;
+  let y=topY+Math.max(0,(contentH-totalH)/2);
+
+  // ── 1. Title ──
+  const titleInfo=countT<1?animTitle:finalTitle;
+  const ts=countT>=1?sS(-2):1;
+  ctx.save();ctx.translate(W/2,y+titleFS/2);ctx.scale(ts,ts);
+  fillText(titleInfo.title,0,0,titleFS,titleInfo.color,'center','800');
+  ctx.restore();
+  y+=titleFS+g1;
+
+  // ── 2. HERO Score ──
+  fillText(animScore.toString(),W/2,y+scoreFS*0.44,scoreFS,WHITE,'center','900');
+  y+=scoreFS+g2;
+
+  // ── 3. Percentile pill ──
+  const pa=sA(0);
+  if(pa>0){
+    ctx.globalAlpha=pa;
+    const pillText='Top '+(100-pctl)+'% of players';
+    const pillW=Math.min(W*0.6,260),pillX=W/2-pillW/2;
+    ctx.fillStyle='rgba(255,255,255,0.07)';
+    roundRect(pillX,y,pillW,pillH,pillH/2);ctx.fill();
+    fillText(pillText,W/2,y+pillH/2,pillFS,'rgba(240,240,245,0.55)','center','600');
+    ctx.globalAlpha=1;
+  }
+  y+=pillH+g3;
+
+  // ── 4. Single stats line: "10/10 correct · 595ms avg" ──
+  const s1a=sA(1);
+  if(s1a>0){
+    ctx.globalAlpha=s1a;
+    const correct=(TOTAL_ROUNDS-misses)+'/'+TOTAL_ROUNDS;
+    const timeStr=avgTime>0?avgTime+'ms avg':'';
+    const statLine=correct+' correct'+(timeStr?' · '+timeStr:'');
+    fillText(statLine,W/2,y+statFS*0.45,statDim,'rgba(240,240,245,0.45)','center','500');
+    ctx.globalAlpha=1;
+  }
+  y+=statFS+g4;
+
+  // ── 5. Round dots — bigger, wider ──
+  const s2a=sA(2);
+  if(s2a>0){
+    ctx.globalAlpha=s2a;
+    const dW=TOTAL_ROUNDS*dotGap,dSX=W/2-dW/2+dotGap/2;
+    for(let i=0;i<roundResults.length;i++){
+      const dx=dSX+i*dotGap,r=roundResults[i];
+      if(r>0&&r<=1){
+        // Diamond for gold tier
+        ctx.save();ctx.translate(Math.round(dx),Math.round(y));ctx.rotate(PI/4);
+        ctx.fillStyle=TIER_COLORS[r-1];
+        const dd=Math.round(dotR*0.85);
+        ctx.fillRect(-dd,-dd,dd*2,dd*2);
+        ctx.restore();
+      } else {
+        ctx.beginPath();ctx.arc(Math.round(dx),Math.round(y),Math.round(dotR),0,PI*2);
+        ctx.fillStyle=r===0?RED:TIER_COLORS[Math.min(r-1,4)];ctx.fill();
+      }
+    }
+    ctx.globalAlpha=1;
+  }
+
+  // ── 6. Buttons — seed code on Share ──
+  const ba=sA(3);
+  if(ba>0){
+    ctx.globalAlpha=ba;
+    // Play Again
+    ctx.fillStyle=ACCENT;
+    roundRect(Math.round(btnStartX),Math.round(btnY),Math.round(btnW),Math.round(btnH),Math.round(btnH*0.3));ctx.fill();
+    fillText('Play Again',btnStartX+btnW/2,btnY+btnH/2,Math.min(W*0.042,20),WHITE,'center','700');
+    // Share with seed
+    ctx.strokeStyle='rgba(240,240,245,0.3)';ctx.lineWidth=2;
+    const sbX=btnStartX+btnW+gapBtn;
+    roundRect(Math.round(sbX),Math.round(btnY),Math.round(btnW),Math.round(btnH),Math.round(btnH*0.3));ctx.stroke();
+    const sl=copiedFlash&&now-copiedFlash<1500?'Copied!':'Share';
+    fillText(sl,sbX+btnW/2,btnY+btnH*0.42,Math.min(W*0.042,20),WHITE,'center','700');
+    fillText('#'+seedCode,sbX+btnW/2,btnY+btnH*0.72,Math.min(W*0.028,14),'rgba(240,240,245,0.3)','center','500');
+    ctx.globalAlpha=1;
+  }
+}
+
+// ── Main loop ──
+function loop(now){
+  requestAnimationFrame(loop);resize();
+  ctx.fillStyle='#000';ctx.fillRect(0,0,canvas.width/dpr,canvas.height/dpr);
+  ctx.save();
+  ctx.translate(VX+Math.round(shakeX*(Math.random()-0.5)),VY+Math.round(shakeY*(Math.random()-0.5)));
+  ctx.beginPath();ctx.rect(0,0,W,H);ctx.clip();
+  ctx.fillStyle=getBgGrad();ctx.fillRect(0,0,W,H);
+  shakeX*=0.85;shakeY*=0.85;if(Math.abs(shakeX)<0.5)shakeX=0;if(Math.abs(shakeY)<0.5)shakeY=0;
+  if(state==='gameover')drawGameOver(now);
+  else{drawGrid(now);drawHUD(now);drawEffects();if(state==='playing'||state==='feedback'||state==='revealing')drawCTA();
+    if(state==='revealing'&&now-revealStartTime>=getRevealDuration()){roundStartTime=now;state='playing';}
+    if(state==='feedback'&&now-feedbackTimer>1000)nextRound();}
+  ctx.restore();
+}
+resize();startGame();requestAnimationFrame(loop);
+</script>
+</body></html>
