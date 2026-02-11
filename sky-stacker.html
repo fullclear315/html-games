@@ -386,14 +386,22 @@ function getCameraY(){
 const TITLE_LADDER=[
   {min:0,   title:'🧱 Rubble',color:RED},
   {min:30,  title:'🏗️ Shaky Start',color:'#e08050'},
-  {min:80,  title:'🧱 Stacking Up',color:ORANGE},
-  {min:180, title:'🏠 Solid Build',color:'#8bb8d0'},
-  {min:320, title:'🏢 Tower Rising',color:CYAN},
-  {min:500, title:'🏙️ Skyline Builder',color:GREEN},
-  {min:750, title:'🗼 Sky High!',color:'#a0e86c'},
-  {min:1200,title:'🌟 Master Architect',color:GOLD},
+  {min:70,  title:'🧱 Stacking Up',color:ORANGE},
+  {min:130, title:'🏠 Solid Build',color:'#8bb8d0'},
+  {min:200, title:'🏢 Tower Rising',color:CYAN},
+  {min:280, title:'🏙️ Skyline Builder',color:GREEN},
+  {min:380, title:'🗼 Sky High!',color:'#a0e86c'},
+  {min:550, title:'🌟 Master Architect',color:GOLD},
 ];
 function getTitleForScore(s){let t=TITLE_LADDER[0];for(let i=TITLE_LADDER.length-1;i>=0;i--)if(s>=TITLE_LADDER[i].min){t=TITLE_LADDER[i];break;}return t;}
+function getPercentile(s){
+  const mean=170,sd=100;
+  const z=(s-mean)/(sd*Math.SQRT2);
+  const t=1/(1+0.3275911*Math.abs(z));
+  const poly=t*(0.254829592+t*(-0.284496736+t*(1.421413741+t*(-1.453152027+t*1.061405429))));
+  const erf=1-poly*Math.exp(-z*z);const cdf=0.5*(1+(z>=0?erf:-erf));
+  return Math.max(1,Math.min(99,Math.round(cdf*100)));
+}
 function endGame(){
   state='gameover';goStartTime=performance.now();
   elapsed=((performance.now()-startTime)/1000).toFixed(1);
@@ -419,7 +427,8 @@ function doShare(now){
   if(!goData)return;vib('light');
   const d=goData,info=getTitleForScore(d.score);
   const dots=resultLog.map(r=>r==='perfect'?'🟡':r==='great'?'🟢':r==='ok'?'🟠':r==='slim'?'🔴':'❌').join('');
-  const text='🏗️ Sky Stacker\n\n'+info.title+' — '+d.score+'\n\n'+d.placed+'/'+MAX_BLOCKS+' blocks · '+d.bestStreak+'🔥 best streak\n\n'+dots;
+  const pctl=getPercentile(d.score);
+  const text='🏗️ Sky Stacker\n\n'+info.title+' — '+d.score+'\nTop '+(100-pctl)+'% of players\n\n'+d.placed+'/'+MAX_BLOCKS+' blocks · '+d.bestStreak+'🔥 best streak\n\n'+dots;
   if(navigator.share){navigator.share({text}).then(()=>{copiedFlash=now;}).catch(()=>{});return;}
   try{const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;left:0;top:0;opacity:0.01;width:1px;height:1px';document.body.appendChild(ta);ta.focus();ta.select();ta.setSelectionRange(0,ta.value.length);const ok=document.execCommand('copy');document.body.removeChild(ta);if(ok){copiedFlash=now;return;}}catch(e){}
   try{navigator.clipboard.writeText(text).then(()=>{copiedFlash=now;}).catch(()=>{});}catch(e){}
@@ -621,6 +630,7 @@ function drawGameOver(now){
   const countT=Math.min(1,goElapsed/GO_COUNT_DUR),countEased=easeOutCubic(countT);
   const animScore=Math.round(countEased*d.score);
   const animTitle=getTitleForScore(animScore),finalTitle=getTitleForScore(d.score);
+  const pctl=getPercentile(d.score);
   function fadeIn(delay){const t=(goElapsed-GO_COUNT_DUR-delay)/300;return t<0?0:Math.min(1,easeOutCubic(t));}
 
   // Buttons — anchored to bottom
@@ -631,6 +641,8 @@ function drawGameOver(now){
   // Font sizes
   const titleFS=Math.min(W*0.07,38);
   const scoreFS=Math.min(W*0.24,130);
+  const pillFS=Math.min(W*0.04,22);
+  const pillH=Math.min(H*0.045,42);
   const statFS=Math.min(W*0.042,22);
   const dotR=Math.max(5,Math.min(W*0.016,8));
   const dotPad=W*0.06;
@@ -639,11 +651,12 @@ function drawGameOver(now){
 
   // Gaps
   const g1=Math.min(H*0.01,8);    // title → score
-  const g2=Math.min(H*0.03,24);   // score → stats
-  const g3=Math.min(H*0.025,20);  // stats → dots
+  const g2=Math.min(H*0.02,16);   // score → pill
+  const g3=Math.min(H*0.02,16);   // pill → stats
+  const g4=Math.min(H*0.025,20);  // stats → dots
 
-  // Layout height: title + score + single stat line + dots
-  const totalH=titleFS+g1+scoreFS+g2+statFS+g3+dotR*2;
+  // Layout height
+  const totalH=titleFS+g1+scoreFS+g2+pillH+g3+statFS+g4+dotR*2;
   const topY=Math.max(20,H*0.04);
   const contentH=(btnY-Math.min(H*0.02,16))-topY;
   let y=topY+Math.max(0,(contentH-totalH)/2);
@@ -657,18 +670,31 @@ function drawGameOver(now){
   fillText(animScore.toString(),W/2,y+scoreFS*0.44,scoreFS,WHITE,'center','900');
   y+=scoreFS+g2;
 
-  // 3. Single stat line
-  const sa=fadeIn(0);
+  // 3. Percentile pill
+  const pa=fadeIn(0);
+  if(pa>0){
+    ctx.globalAlpha=pa;
+    const pillText='Top '+(100-pctl)+'% of players';
+    const pillW=Math.min(W*0.6,260),pillX=W/2-pillW/2;
+    ctx.fillStyle='rgba(255,255,255,0.07)';
+    roundRect(pillX,y,pillW,pillH,pillH/2);ctx.fill();
+    fillText(pillText,W/2,y+pillH/2,pillFS,'rgba(240,240,245,0.55)','center','600');
+    ctx.globalAlpha=1;
+  }
+  y+=pillH+g3;
+
+  // 4. Single stat line
+  const sa=fadeIn(150);
   if(sa>0){
     ctx.globalAlpha=sa;
     const statLine=d.placed+'/'+MAX_BLOCKS+' blocks  ·  '+d.bestStreak+'🔥 best streak';
     fillText(statLine,W/2,y+statFS*0.45,statFS,'rgba(240,240,245,0.55)','center','500');
     ctx.globalAlpha=1;
   }
-  y+=statFS+g3;
+  y+=statFS+g4;
 
-  // 4. Round dots
-  const da=fadeIn(200);
+  // 5. Round dots
+  const da=fadeIn(350);
   if(da>0){
     ctx.globalAlpha=da;
     const dW=resultLog.length*dotGap,dSX=W/2-dW/2+dotGap/2;
@@ -676,8 +702,8 @@ function drawGameOver(now){
     ctx.globalAlpha=1;
   }
 
-  // 5. Buttons
-  const ba=fadeIn(350);
+  // 6. Buttons
+  const ba=fadeIn(500);
   if(ba>0){
     ctx.globalAlpha=ba;
     btnRect={x:btnStartX,y:btnY,w:btnW,h:btnH};
