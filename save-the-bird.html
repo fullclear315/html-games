@@ -31,8 +31,7 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 
 /* ---- CEILING SPIKES ---- */
 #ceilingSpikes{position:absolute;top:0;left:0;right:0;display:flex;z-index:3;transition:top 0.5s ease-out}
-.spike-down{width:0;height:0;border-left:var(--shw,11px) solid transparent;border-right:var(--shw,11px) solid transparent;border-top:var(--ssh,50px) solid;border-top-color:#A8C0D0;flex-shrink:0;position:relative}
-.spike-down::before{content:'';position:absolute;top:calc(-1 * var(--ssh,50px));left:calc(-1 * var(--shw,11px));width:calc(2 * var(--shw,11px));height:var(--ssh,50px);background:linear-gradient(115deg,rgba(255,255,255,0.35) 0%,rgba(255,255,255,0.08) 25%,transparent 48%,rgba(0,15,35,0.12) 70%,rgba(0,15,35,0.22) 100%);clip-path:polygon(0 0,100% 0,50% 100%);pointer-events:none}
+.spike-down{flex:1 0 0;height:var(--ssh,50px);background:#A8C0D0;clip-path:polygon(0 0,100% 0,50% 100%);position:relative}
 /* ---- SPIKE TIP GLINT (individual random flashes) ---- */
 #ceilingSpikes{overflow:visible}
 .spike-tip-glint{position:absolute;width:20px;height:20px;pointer-events:none;z-index:10;animation:tipFlash 0.22s ease-out forwards}
@@ -74,8 +73,7 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 #spikeBar{position:relative;z-index:2}
 #spikePlank{height:8px;background:linear-gradient(180deg,#B8722E 0%,#8C4A14 50%,#5C2A08 100%);box-shadow:inset 0 1px 0 rgba(255,210,120,0.25),inset 0 -1px 0 rgba(0,0,0,0.35)}
 #spikeBarUp{display:flex;position:absolute;top:calc(-1 * var(--ssh,50px));left:0;right:0}
-.sb-up{width:0;height:0;border-left:var(--shw,11px) solid transparent;border-right:var(--shw,11px) solid transparent;border-bottom:var(--ssh,50px) solid #A8C0D0;flex-shrink:0;position:relative}
-.sb-up::before{content:'';position:absolute;top:0;left:calc(-1 * var(--shw,11px));width:calc(2 * var(--shw,11px));height:var(--ssh,50px);background:linear-gradient(115deg,rgba(255,255,255,0.35) 0%,rgba(255,255,255,0.08) 25%,transparent 48%,rgba(0,15,35,0.12) 70%,rgba(0,15,35,0.22) 100%);clip-path:polygon(50% 0,0 100%,100% 100%);pointer-events:none}
+.sb-up{flex:1 0 0;height:var(--ssh,50px);background:#A8C0D0;clip-path:polygon(50% 0,0 100%,100% 100%);position:relative}
 #tileContainer{position:relative}
 
 /* ---- HYDRAULIC PRESS ---- */
@@ -582,8 +580,7 @@ function measure() {
 // ===== SPIKES =====
 function initSpikes() {
   const contentW = S.cageW - WALL_W * 2; // width between the brown walls
-  const n = Math.floor(contentW / 22);    // whole spikes that fit at base size
-  const halfW = contentW / n / 2;         // exact half-width so N spikes fill contentW
+  const n = Math.floor(contentW / 22);    // target ~22px per spike
 
   // Set spike height on cage so it cascades to all spike elements
   cage.style.setProperty('--ssh', S.spikeH + 'px');
@@ -593,7 +590,6 @@ function initSpikes() {
     el.style.cssText = '';
     el.style.left = WALL_W + 'px';
     el.style.right = WALL_W + 'px';
-    el.style.setProperty('--shw', halfW + 'px');
     for (let i = 0; i < n; i++) {
       const d = document.createElement('div'); d.className = cls;
       el.appendChild(d);
@@ -842,21 +838,16 @@ function updateBird(dt) {
     birdWrap.className = mood;
   }
 
-  // Eye tracking — relative to each bird's eye geometry
-  const pupil = $('birdPupil');
-  if (S.eyeBaseCx !== undefined) {
+  // Eye tracking — only update when mood changes
+  if (S._lastEyeMood !== mood && S.eyeBaseCx !== undefined) {
+    S._lastEyeMood = mood;
+    const pupil = $('birdPupil');
     const maxD = Math.max(2, (S.eyeWhiteR || 8) - (S.eyePupilR || 5) + 1);
     let dCx = 0, dCy = 0;
-    if (mood === 'calm') {
-      dCx = 0; dCy = 0;
-    } else if (mood === 'worried') {
-      dCx = maxD * 0.15; dCy = maxD * 0.55;
-    } else {
-      dCx = maxD * 0.2; dCy = maxD * 0.9;
-    }
+    if (mood === 'worried') { dCx = maxD * 0.15; dCy = maxD * 0.55; }
+    else if (mood === 'frantic') { dCx = maxD * 0.2; dCy = maxD * 0.9; }
     pupil.setAttribute('cx', S.eyeBaseCx + dCx);
     pupil.setAttribute('cy', S.eyeBaseCy + dCy);
-    // Mirror to second eye if present (owl)
     const pupil2 = $('birdPupil2');
     if (pupil2 && S.eye2BaseCx !== undefined) {
       pupil2.setAttribute('cx', S.eye2BaseCx + dCx);
@@ -873,8 +864,12 @@ function updateBird(dt) {
     birdW = maxBirdW;
     size = birdW / (S.birdAspect || 1);
   }
-  birdSvg.style.height = size + 'px';
-  birdSvg.style.width = birdW + 'px';
+  // Only update DOM when size actually changes (avoids layout thrashing)
+  if (S._lastBirdW !== birdW) {
+    birdSvg.style.height = size + 'px';
+    birdSvg.style.width = birdW + 'px';
+    S._lastBirdW = birdW;
+  }
 
   // Position: wall-to-wall pacing — bird always moves beak-first
   // Allow beak/tail overhang past cage walls so wide birds have room to pace
@@ -938,19 +933,25 @@ function birdHop() {
 }
 
 // ===== DANGER OVERLAY + BACKGROUND ====
+const _dangerEl = $('dangerOverlay');
+let _lastDangerOp = -1, _lastDangerPulse = false;
 function updateDanger() {
   const free = getFreeSpace();
   const bh = getBirdH();
   const baseBh = S.cageH * 0.216;
   const ratio = Math.max(0, Math.min(1, 1 - (free - bh * DEATH_GAP) / (baseBh * 3)));
-  const overlay = $('dangerOverlay');
 
   if (ratio > 0.45) {
-    overlay.style.opacity = Math.min(1, (ratio - 0.45) * 3.6);
-    overlay.classList.toggle('pulse', ratio > 0.7);
-  } else {
-    overlay.style.opacity = 0;
-    overlay.classList.remove('pulse');
+    const op = Math.min(1, (ratio - 0.45) * 3.6);
+    const rounded = Math.round(op * 50) / 50; // ~2% steps to reduce writes
+    if (rounded !== _lastDangerOp) { _dangerEl.style.opacity = rounded; _lastDangerOp = rounded; }
+    const pulse = ratio > 0.7;
+    if (pulse !== _lastDangerPulse) { _dangerEl.classList.toggle('pulse', pulse); _lastDangerPulse = pulse; }
+  } else if (_lastDangerOp !== 0) {
+    _dangerEl.style.opacity = 0;
+    _dangerEl.classList.remove('pulse');
+    _lastDangerOp = 0;
+    _lastDangerPulse = false;
   }
 
   // Danger tint handled by dangerOverlay opacity — no cage filter (expensive on mobile)
@@ -1476,8 +1477,9 @@ async function roundCelebration() {
   const game = $('game');
 
   // Clear danger overlay and background effects
-  $('dangerOverlay').style.opacity = 0;
-  $('dangerOverlay').classList.remove('pulse');
+  _dangerEl.style.opacity = 0;
+  _dangerEl.classList.remove('pulse');
+  _lastDangerOp = 0; _lastDangerPulse = false;
   cage.style.filter = '';
 
   // Reset bird eyes to calm (don't look down while flying away)
