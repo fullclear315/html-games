@@ -25,18 +25,17 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 #cageWallL,#cageWallR{position:absolute;top:0;bottom:0;pointer-events:none;z-index:2}
 #cageWallL{left:0;width:10px;background:#8C4A14}
 #cageWallR{right:0;width:10px;background:#5C2A08}
-#cageForest{position:absolute;top:0;bottom:0;left:0;right:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 25% 50% at 8% 55%,rgba(10,30,6,0.85) 0%,transparent 100%),radial-gradient(ellipse 20% 55% at 25% 50%,rgba(12,35,8,0.75) 0%,transparent 100%),radial-gradient(ellipse 22% 48% at 45% 52%,rgba(14,38,10,0.7) 0%,transparent 100%),radial-gradient(ellipse 18% 52% at 65% 48%,rgba(10,32,6,0.8) 0%,transparent 100%),radial-gradient(ellipse 24% 45% at 85% 54%,rgba(12,34,8,0.75) 0%,transparent 100%),radial-gradient(ellipse 35% 25% at 10% 30%,rgba(30,80,20,0.45) 0%,transparent 100%),radial-gradient(ellipse 30% 22% at 30% 28%,rgba(35,85,25,0.4) 0%,transparent 100%),radial-gradient(ellipse 40% 28% at 50% 32%,rgba(28,75,18,0.5) 0%,transparent 100%),radial-gradient(ellipse 32% 24% at 72% 26%,rgba(32,78,22,0.45) 0%,transparent 100%),radial-gradient(ellipse 28% 20% at 90% 34%,rgba(26,70,16,0.4) 0%,transparent 100%),radial-gradient(ellipse 100% 30% at 50% 90%,rgba(8,20,4,0.6) 0%,transparent 100%);filter:blur(3px)}
+#cageForest{position:absolute;top:0;bottom:0;left:0;right:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 25% 50% at 8% 55%,rgba(10,30,6,0.85) 0%,transparent 100%),radial-gradient(ellipse 20% 55% at 25% 50%,rgba(12,35,8,0.75) 0%,transparent 100%),radial-gradient(ellipse 22% 48% at 45% 52%,rgba(14,38,10,0.7) 0%,transparent 100%),radial-gradient(ellipse 18% 52% at 65% 48%,rgba(10,32,6,0.8) 0%,transparent 100%),radial-gradient(ellipse 24% 45% at 85% 54%,rgba(12,34,8,0.75) 0%,transparent 100%),radial-gradient(ellipse 35% 25% at 10% 30%,rgba(30,80,20,0.45) 0%,transparent 100%),radial-gradient(ellipse 30% 22% at 30% 28%,rgba(35,85,25,0.4) 0%,transparent 100%),radial-gradient(ellipse 40% 28% at 50% 32%,rgba(28,75,18,0.5) 0%,transparent 100%),radial-gradient(ellipse 32% 24% at 72% 26%,rgba(32,78,22,0.45) 0%,transparent 100%),radial-gradient(ellipse 28% 20% at 90% 34%,rgba(26,70,16,0.4) 0%,transparent 100%),radial-gradient(ellipse 100% 30% at 50% 90%,rgba(8,20,4,0.6) 0%,transparent 100%)}
 #cageNet{position:absolute;top:0;bottom:0;left:0;right:0;pointer-events:none;z-index:1;background:linear-gradient(45deg,transparent 46.5%,rgba(160,185,160,0.22) 46.5%,rgba(160,185,160,0.22) 53.5%,transparent 53.5%),linear-gradient(-45deg,transparent 46.5%,rgba(160,185,160,0.22) 46.5%,rgba(160,185,160,0.22) 53.5%,transparent 53.5%);background-size:21px 21px}
 #cageBottom{height:10px;flex-shrink:0;background:linear-gradient(0deg,#C4813A 0%,#A0581E 30%,#7A3A0E 70%,#4E2106 100%);box-shadow:0 -3px 6px rgba(0,0,0,0.45),inset 0 -1px 0 rgba(255,220,140,0.3);position:relative;z-index:20}
 
 /* ---- CEILING SPIKES ---- */
 #ceilingSpikes{position:absolute;top:0;left:0;right:0;display:flex;z-index:3;transition:top 0.5s ease-out}
-.spike-down{width:0;height:0;border-left:var(--shw,11px) solid transparent;border-right:var(--shw,11px) solid transparent;border-top:var(--ssh,50px) solid;border-top-color:#A8C0D0;flex-shrink:0;position:relative;filter:drop-shadow(0 4px 5px rgba(0,10,25,0.6)) drop-shadow(-1px 0 0 rgba(200,225,245,0.5)) drop-shadow(2px 1px 2px rgba(15,35,55,0.5))}
+.spike-down{width:0;height:0;border-left:var(--shw,11px) solid transparent;border-right:var(--shw,11px) solid transparent;border-top:var(--ssh,50px) solid;border-top-color:#A8C0D0;flex-shrink:0;position:relative}
 .spike-down::before{content:'';position:absolute;top:calc(-1 * var(--ssh,50px));left:calc(-1 * var(--shw,11px));width:calc(2 * var(--shw,11px));height:var(--ssh,50px);background:linear-gradient(115deg,rgba(255,255,255,0.35) 0%,rgba(255,255,255,0.08) 25%,transparent 48%,rgba(0,15,35,0.12) 70%,rgba(0,15,35,0.22) 100%);clip-path:polygon(0 0,100% 0,50% 100%);pointer-events:none}
-.spike-down::after{content:'';position:absolute;top:calc(-1 * var(--ssh,50px));left:calc(-1 * var(--shw,11px));width:calc(2 * var(--shw,11px));height:var(--ssh,50px);background:linear-gradient(100deg,transparent 38%,rgba(255,255,255,0.18) 46%,rgba(255,255,255,0.25) 50%,rgba(255,255,255,0.18) 54%,transparent 62%);clip-path:polygon(0 0,100% 0,50% 100%);pointer-events:none}
 /* ---- SPIKE TIP GLINT (individual random flashes) ---- */
 #ceilingSpikes{overflow:visible}
-.spike-tip-glint{position:absolute;width:20px;height:20px;pointer-events:none;z-index:10;animation:tipFlash 0.22s ease-out forwards;filter:drop-shadow(0 0 3px rgba(200,230,255,0.9)) drop-shadow(0 0 6px rgba(180,220,255,0.5))}
+.spike-tip-glint{position:absolute;width:20px;height:20px;pointer-events:none;z-index:10;animation:tipFlash 0.22s ease-out forwards}
 .spike-tip-glint::before,.spike-tip-glint::after{content:'';position:absolute;top:50%;left:50%;background:#fff;transform-origin:center}
 .spike-tip-glint::before{width:2px;height:100%;transform:translate(-50%,-50%);border-radius:1px}
 .spike-tip-glint::after{width:100%;height:2px;transform:translate(-50%,-50%);border-radius:1px}
@@ -49,7 +48,7 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 
 /* ---- BIRD ---- */
 #birdWrap{position:absolute;z-index:4;will-change:transform}
-.bird-svg{filter:drop-shadow(0 3px 6px rgba(0,0,0,0.25))}
+.bird-svg{}
 #birdWrap.calm .bird-svg{animation:birdCalm 2.4s cubic-bezier(0.45,0,0.55,1) infinite}
 #birdWrap.worried .bird-svg{animation:birdWorried 1.4s cubic-bezier(0.45,0,0.55,1) infinite}
 #birdWrap.frantic .bird-svg{animation:birdFrantic 0.8s linear infinite}
@@ -75,9 +74,8 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 #spikeBar{position:relative;z-index:2}
 #spikePlank{height:8px;background:linear-gradient(180deg,#B8722E 0%,#8C4A14 50%,#5C2A08 100%);box-shadow:inset 0 1px 0 rgba(255,210,120,0.25),inset 0 -1px 0 rgba(0,0,0,0.35)}
 #spikeBarUp{display:flex;position:absolute;top:calc(-1 * var(--ssh,50px));left:0;right:0}
-.sb-up{width:0;height:0;border-left:var(--shw,11px) solid transparent;border-right:var(--shw,11px) solid transparent;border-bottom:var(--ssh,50px) solid #A8C0D0;flex-shrink:0;position:relative;filter:drop-shadow(0 -4px 5px rgba(0,10,25,0.6)) drop-shadow(-1px 0 0 rgba(200,225,245,0.5)) drop-shadow(2px -1px 2px rgba(15,35,55,0.5))}
+.sb-up{width:0;height:0;border-left:var(--shw,11px) solid transparent;border-right:var(--shw,11px) solid transparent;border-bottom:var(--ssh,50px) solid #A8C0D0;flex-shrink:0;position:relative}
 .sb-up::before{content:'';position:absolute;top:0;left:calc(-1 * var(--shw,11px));width:calc(2 * var(--shw,11px));height:var(--ssh,50px);background:linear-gradient(115deg,rgba(255,255,255,0.35) 0%,rgba(255,255,255,0.08) 25%,transparent 48%,rgba(0,15,35,0.12) 70%,rgba(0,15,35,0.22) 100%);clip-path:polygon(50% 0,0 100%,100% 100%);pointer-events:none}
-.sb-up::after{content:'';position:absolute;top:0;left:calc(-1 * var(--shw,11px));width:calc(2 * var(--shw,11px));height:var(--ssh,50px);background:linear-gradient(100deg,transparent 38%,rgba(255,255,255,0.18) 46%,rgba(255,255,255,0.25) 50%,rgba(255,255,255,0.18) 54%,transparent 62%);clip-path:polygon(50% 0,0 100%,100% 100%);pointer-events:none}
 #tileContainer{position:relative}
 
 /* ---- HYDRAULIC PRESS ---- */
@@ -125,7 +123,7 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 #pressBaseBody{height:2000px;background:linear-gradient(180deg,#2a2a2a 0%,#1a1a1a 100%);margin:0 auto;width:90%;box-shadow:inset 0 0 15px rgba(0,0,0,0.5),-2px 0 4px rgba(0,0,0,0.3),2px 0 4px rgba(0,0,0,0.3)}
 
 /* ---- TILES ---- */
-.tile{position:absolute;display:flex;align-items:center;justify-content:center;background:linear-gradient(150deg,#FFF8EE 0%,#F5E8CC 50%,#E8D0A8 100%);border:1px solid rgba(0,0,0,0.06);border-radius:5px;cursor:pointer;box-shadow:0 5px 0 #b89460,0 6px 4px rgba(0,0,0,0.22),-1px 0 0 #b89460,1px 0 0 #b89460,-2px 0 3px rgba(0,0,0,0.12),2px 0 3px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.85),inset 0 -2px 4px rgba(139,90,40,0.12);transition:background 0.15s,box-shadow 0.15s;will-change:auto;line-height:1}
+.tile{position:absolute;display:flex;align-items:center;justify-content:center;background:linear-gradient(150deg,#FFF8EE 0%,#F5E8CC 50%,#E8D0A8 100%);border:1px solid rgba(0,0,0,0.06);border-radius:5px;cursor:pointer;box-shadow:0 5px 0 #b89460,0 6px 4px rgba(0,0,0,0.22),inset 0 1px 0 rgba(255,255,255,0.85);transition:background 0.15s,box-shadow 0.15s;will-change:auto;line-height:1}
 .tile:active{transform:scale(0.92)!important}
 .tile.selected{border-color:#FACC15;background:linear-gradient(160deg,#fffce8,#ffd466);box-shadow:0 0 16px rgba(250,204,21,0.7),0 0 6px rgba(250,204,21,0.5),0 4px 0 #c89820,0 5px 6px rgba(0,0,0,0.15);transform:scale(1.04)}
 .tile.selected{animation:selPulse 0.2s ease-out}
@@ -955,14 +953,7 @@ function updateDanger() {
     overlay.classList.remove('pulse');
   }
 
-  // Background color shift via overlay opacity (preserve radial gradient base)
-  // The dangerOverlay already handles the red tint, so we just darken the cage
-  if (ratio > 0.5) {
-    const t = (ratio - 0.5) * 2;
-    cage.style.filter = `brightness(${1 - t * 0.3}) saturate(${1 - t * 0.4})`;
-  } else {
-    cage.style.filter = '';
-  }
+  // Danger tint handled by dangerOverlay opacity — no cage filter (expensive on mobile)
 }
 
 // ===== MATCH DETECTION & SELECTION =====
@@ -1128,7 +1119,7 @@ function spawnParticles(rect, icon) {
     const delay = Math.random() * 0.04;
     const p = document.createElement('div');
     p.className = 'match-particle';
-    p.style.cssText = `left:${cx - half}px;top:${cy - half}px;width:${size}px;height:${size}px;background:radial-gradient(circle,rgba(255,255,255,${size < 5 ? '1' : '0.9'}) 0%,${color} ${size < 5 ? '30' : '50'}%,${color}88 100%);filter:blur(${size < 5 ? 0.5 : 1}px);--px:${Math.cos(angle)*r}px;--py:${Math.sin(angle)*r}px;animation-duration:${dur}s;animation-delay:${delay}s`;
+    p.style.cssText = `left:${cx - half}px;top:${cy - half}px;width:${size}px;height:${size}px;background:${color};border-radius:50%;--px:${Math.cos(angle)*r}px;--py:${Math.sin(angle)*r}px;animation-duration:${dur}s;animation-delay:${delay}s`;
     $('game').appendChild(p);
     p.addEventListener('animationend', () => p.remove(), { once: true });
   }
@@ -1823,15 +1814,18 @@ const SFX = {
   },
 
   unlock() {
-    if (this._unlocked) return;
     if (!this.ctx) this.init();
-    if (this.ctx.state === 'suspended') this.ctx.resume();
-    const buf = this.ctx.createBuffer(1, 1, this.ctx.sampleRate);
-    const src = this.ctx.createBufferSource();
-    src.buffer = buf;
-    src.connect(this.ctx.destination);
-    src.start(0);
-    this._unlocked = true;
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+    if (!this._unlocked) {
+      const buf = this.ctx.createBuffer(1, 1, this.ctx.sampleRate);
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(this.ctx.destination);
+      src.start(0);
+      this._unlocked = true;
+    }
   },
 
   // Bell-like tone with inharmonic partials (sounds natural, not arcade)
@@ -2110,8 +2104,8 @@ async function showRoundSplash(roundNum) {
 const G = {
   init() {
     SFX.init();
-    document.addEventListener('touchstart', () => SFX.unlock(), { once: true });
-    document.addEventListener('click', () => SFX.unlock(), { once: true });
+    document.addEventListener('touchstart', () => SFX.unlock());
+    document.addEventListener('click', () => SFX.unlock());
 
     document.addEventListener('visibilitychange', () => {
       if (document.hidden && SFX.ctx) SFX.ctx.suspend();
