@@ -376,12 +376,12 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
   <div id="debug" style="position:absolute;bottom:4px;left:4px;z-index:200;display:none;gap:3px;flex-wrap:nowrap;white-space:nowrap">
     <button onclick="if(S.phase==='playing')loseGame()" style="font-size:10px;padding:3px 7px;opacity:0.7;border-radius:4px;border:1px solid #e44;background:rgba(40,0,0,0.6);color:#f88">LOSE</button>
     <button onclick="debugWinRound()" style="font-size:10px;padding:3px 7px;opacity:0.7;border-radius:4px;border:1px solid #4ade80;background:rgba(0,40,0,0.6);color:#4ade80">WIN</button>
-    <button onclick="debugApplyMod(0)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #e44;background:rgba(80,0,0,0.5);color:#fff" title="Giant Bird">&#x1F426;</button>
-    <button onclick="debugApplyMod(1)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #8B5CF6;background:rgba(50,0,80,0.5);color:#fff" title="Lower Ceiling">&#x1F5DC;</button>
-    <button onclick="debugApplyMod(2)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #a5f;background:rgba(50,0,80,0.5);color:#fff" title="More Fruits">&#x1F3B2;</button>
+    <button onclick="debugApplyMod(0)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #e44;background:rgba(80,0,0,0.5);color:#fff" title="Giant Bird">&#x1F985;</button>
+    <button onclick="debugApplyMod(1)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #8B5CF6;background:rgba(50,0,80,0.5);color:#fff" title="Lower Ceiling">&#x2B07;&#xFE0F;</button>
+    <button onclick="debugApplyMod(2)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #a5f;background:rgba(50,0,80,0.5);color:#fff" title="Extra Fruit">&#x1F34A;</button>
     <button onclick="debugApplyMod(3)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #38bdf8;background:rgba(0,40,80,0.5);color:#fff" title="Ice Tiles">&#x2744;&#xFE0F;</button>
-    <button onclick="debugApplyMod(4)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #fc0;background:rgba(80,60,0,0.5);color:#fff" title="Faster Rise">&#x23F1;&#xFE0F;</button>
-    <button onclick="debugApplyMod(5)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #34D399;background:rgba(0,60,40,0.5);color:#fff" title="Tiny Tiles">&#x1F50D;</button>
+    <button onclick="debugApplyMod(4)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #fc0;background:rgba(80,60,0,0.5);color:#fff" title="Faster Rise">&#x23E9;</button>
+    <button onclick="debugApplyMod(5)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #34D399;background:rgba(0,60,40,0.5);color:#fff" title="Tiny Tiles">&#x1F538;</button>
   </div>
 </div>
 
@@ -405,12 +405,12 @@ const ROUND_CFG = [
 const TOTAL_ROUNDS = ROUND_CFG.length;
 
 const MODIFIERS = [
-  { name: 'Giant Bird',     icon: '\u{1F426}', color: '#EF4444', border: '#EF4444', apply: s => { s.birdScale *= 1.5 } },
-  { name: 'Lower Ceiling',  icon: '\u{1F5DC}', color: '#8B5CF6', border: '#8B5CF6', apply: s => { s.ceilOffset += 80 } },
+  { name: 'Giant Bird',     icon: '\u{1F985}', color: '#EF4444', border: '#EF4444', apply: s => { s.birdScale *= 1.5 } },
+  { name: 'Lower Ceiling',  icon: '\u{2B07}\u{FE0F}', color: '#8B5CF6', border: '#8B5CF6', apply: s => { s.ceilOffset += 80 } },
   { name: 'Extra Fruit',    icon: '\u{1F34A}', color: '#F97316', border: '#F97316', apply: s => { s.extraTypes += 1 } },
   { name: 'Ice Tiles',      icon: '\u{2744}\u{FE0F}', color: '#38BDF8', border: '#38BDF8', apply: s => { s.frozenTiles = true } },
-  { name: 'Faster Rise',    icon: '\u{23F1}\u{FE0F}', color: '#FACC15', border: '#FACC15', apply: s => { s.speedMul *= 1.2 } },
-  { name: 'Tiny Tiles',     icon: '\u{1F50D}', color: '#34D399', border: '#34D399', apply: s => { s.tinyTiles = true } },
+  { name: 'Faster Rise',    icon: '\u{23E9}', color: '#FACC15', border: '#FACC15', apply: s => { s.speedMul *= 1.2 } },
+  { name: 'Tiny Tiles',     icon: '\u{1F538}', color: '#34D399', border: '#34D399', apply: s => { s.tinyTiles = true } },
 ];
 
 // ===== BIRD VARIANTS (one per round) =====
