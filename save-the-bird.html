@@ -1,0 +1,1984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Save the Bird</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,'SF Pro Rounded',system-ui,sans-serif;background:#0a1a0a;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+
+/* ---- GAME CONTAINER ---- */
+#game{width:100%;height:100%;max-width:430px;margin:0 auto;position:relative;display:flex;flex-direction:column;overflow:hidden;background:radial-gradient(ellipse 120% 100% at 50% 20%,#1E4A10 0%,#0F2808 50%,#081506 100%)}
+
+/* ---- TOP PLANK (level + modifiers) ---- */
+#topPlank{height:48px;flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:10px;padding:0 16px;background:linear-gradient(180deg,#C4813A 0%,#A0581E 25%,#7A3A0E 65%,#4E2106 100%);box-shadow:0 4px 8px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,220,140,0.35),inset 0 -1px 0 rgba(0,0,0,0.4);z-index:20;position:relative}
+#roundBadge{font-family:'Fredoka',-apple-system,'SF Pro Rounded',system-ui,sans-serif;color:#fff;font-size:22px;font-weight:600;line-height:1;letter-spacing:0.06em;text-shadow:0 1px 3px rgba(20,8,0,0.85),0 0 12px rgba(255,200,80,0.25);white-space:nowrap}
+#modBadges{display:flex;gap:6px}
+.mod-badge{width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid transparent;animation:modPop 0.3s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes modPop{0%{transform:scale(0)}100%{transform:scale(1)}}
+
+/* ---- CAGE ---- */
+#cage{flex:1;position:relative;overflow:hidden;padding-left:10px;padding-right:10px;background:linear-gradient(180deg,#6a97b8 0%,#4a7a9a 6%,#3a6a40 14%,#2a5a28 22%,#1e4a18 35%,#163a10 50%,#102e0a 70%,#0c2206 85%,#081806 100%)}
+#cageWallL,#cageWallR{position:absolute;top:0;bottom:0;pointer-events:none;z-index:2}
+#cageWallL{left:0;width:10px;background:#8C4A14}
+#cageWallR{right:0;width:10px;background:#5C2A08}
+#cageForest{position:absolute;top:0;bottom:0;left:0;right:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 25% 50% at 8% 55%,rgba(10,30,6,0.85) 0%,transparent 100%),radial-gradient(ellipse 20% 55% at 25% 50%,rgba(12,35,8,0.75) 0%,transparent 100%),radial-gradient(ellipse 22% 48% at 45% 52%,rgba(14,38,10,0.7) 0%,transparent 100%),radial-gradient(ellipse 18% 52% at 65% 48%,rgba(10,32,6,0.8) 0%,transparent 100%),radial-gradient(ellipse 24% 45% at 85% 54%,rgba(12,34,8,0.75) 0%,transparent 100%),radial-gradient(ellipse 35% 25% at 10% 30%,rgba(30,80,20,0.45) 0%,transparent 100%),radial-gradient(ellipse 30% 22% at 30% 28%,rgba(35,85,25,0.4) 0%,transparent 100%),radial-gradient(ellipse 40% 28% at 50% 32%,rgba(28,75,18,0.5) 0%,transparent 100%),radial-gradient(ellipse 32% 24% at 72% 26%,rgba(32,78,22,0.45) 0%,transparent 100%),radial-gradient(ellipse 28% 20% at 90% 34%,rgba(26,70,16,0.4) 0%,transparent 100%),radial-gradient(ellipse 100% 30% at 50% 90%,rgba(8,20,4,0.6) 0%,transparent 100%);filter:blur(3px)}
+#cageNet{position:absolute;top:0;bottom:0;left:0;right:0;pointer-events:none;z-index:1;background:linear-gradient(45deg,transparent 46.5%,rgba(160,185,160,0.22) 46.5%,rgba(160,185,160,0.22) 53.5%,transparent 53.5%),linear-gradient(-45deg,transparent 46.5%,rgba(160,185,160,0.22) 46.5%,rgba(160,185,160,0.22) 53.5%,transparent 53.5%);background-size:21px 21px}
+#cageBottom{height:10px;flex-shrink:0;background:linear-gradient(0deg,#C4813A 0%,#A0581E 30%,#7A3A0E 70%,#4E2106 100%);box-shadow:0 -3px 6px rgba(0,0,0,0.45),inset 0 -1px 0 rgba(255,220,140,0.3);position:relative;z-index:20}
+
+/* ---- CEILING SPIKES ---- */
+#ceilingSpikes{position:absolute;top:0;left:0;right:0;display:flex;z-index:3;transition:top 0.5s ease-out}
+.spike-down{width:0;height:0;border-left:var(--shw,11px) solid transparent;border-right:var(--shw,11px) solid transparent;border-top:72px solid;border-top-color:#A8C0D0;flex-shrink:0;position:relative;filter:drop-shadow(0 4px 5px rgba(0,10,25,0.6)) drop-shadow(-1px 0 0 rgba(200,225,245,0.5)) drop-shadow(2px 1px 2px rgba(15,35,55,0.5))}
+.spike-down::before{content:'';position:absolute;top:-72px;left:calc(-1 * var(--shw,11px));width:calc(2 * var(--shw,11px));height:72px;background:linear-gradient(115deg,rgba(255,255,255,0.35) 0%,rgba(255,255,255,0.08) 25%,transparent 48%,rgba(0,15,35,0.12) 70%,rgba(0,15,35,0.22) 100%);clip-path:polygon(0 0,100% 0,50% 100%);pointer-events:none}
+.spike-down::after{content:'';position:absolute;top:-72px;left:calc(-1 * var(--shw,11px));width:calc(2 * var(--shw,11px));height:72px;background:linear-gradient(100deg,transparent 38%,rgba(255,255,255,0.18) 46%,rgba(255,255,255,0.25) 50%,rgba(255,255,255,0.18) 54%,transparent 62%);clip-path:polygon(0 0,100% 0,50% 100%);pointer-events:none}
+/* ---- SPIKE TIP GLINT (individual random flashes) ---- */
+#ceilingSpikes{overflow:visible}
+.spike-tip-glint{position:absolute;width:20px;height:20px;pointer-events:none;z-index:10;animation:tipFlash 0.22s ease-out forwards;filter:drop-shadow(0 0 3px rgba(200,230,255,0.9)) drop-shadow(0 0 6px rgba(180,220,255,0.5))}
+.spike-tip-glint::before,.spike-tip-glint::after{content:'';position:absolute;top:50%;left:50%;background:#fff;transform-origin:center}
+.spike-tip-glint::before{width:2px;height:100%;transform:translate(-50%,-50%);border-radius:1px}
+.spike-tip-glint::after{width:100%;height:2px;transform:translate(-50%,-50%);border-radius:1px}
+@keyframes tipFlash{0%{opacity:0;transform:translate(-50%,-50%) scale(0.2) rotate(0deg)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.4) rotate(8deg)}100%{opacity:0;transform:translate(-50%,-50%) scale(0.3) rotate(20deg)}}
+
+/* ---- DANGER OVERLAY ---- */
+#dangerOverlay{position:absolute;inset:0;pointer-events:none;z-index:6;opacity:0;transition:opacity 0.3s;background:radial-gradient(ellipse at center,transparent 40%,rgba(239,68,68,0.3) 100%)}
+#dangerOverlay.pulse{animation:dangerPulse 0.8s ease-in-out infinite}
+@keyframes dangerPulse{0%,100%{opacity:0.7}50%{opacity:1}}
+
+/* ---- BIRD ---- */
+#birdWrap{position:absolute;z-index:4;will-change:transform}
+.bird-svg{filter:drop-shadow(0 3px 6px rgba(0,0,0,0.25))}
+#birdWrap.calm .bird-svg{animation:birdCalm 2.4s cubic-bezier(0.45,0,0.55,1) infinite}
+#birdWrap.worried .bird-svg{animation:birdWorried 1.4s cubic-bezier(0.45,0,0.55,1) infinite}
+#birdWrap.frantic .bird-svg{animation:birdFrantic 0.8s linear infinite}
+@keyframes birdCalm{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes birdWorried{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-4px) rotate(-2deg)}50%{transform:translateY(-7px)}75%{transform:translateY(-4px) rotate(2deg)}}
+@keyframes birdFrantic{0%{transform:translateY(0) rotate(0deg)}10%{transform:translateY(-2px) rotate(-4deg)}20%{transform:translateY(0) rotate(3deg)}30%{transform:translateY(-3px) rotate(-3deg)}40%{transform:translateY(0) rotate(4deg)}50%{transform:translateY(-2px) rotate(-2deg)}60%{transform:translateY(1px) rotate(3deg)}70%{transform:translateY(-3px) rotate(-4deg)}80%{transform:translateY(0) rotate(2deg)}90%{transform:translateY(-1px) rotate(-3deg)}100%{transform:translateY(0) rotate(0deg)}}
+.wing-flap{transform-origin:65% 50%}
+#birdWrap.calm .wing-flap{animation:wingCalm 1.6s ease-in-out infinite}
+#birdWrap.worried .wing-flap{animation:wingWorried 0.8s ease-in-out infinite}
+#birdWrap.frantic .wing-flap{animation:wingFrantic 0.35s ease-in-out infinite}
+@keyframes wingCalm{0%,100%{transform:scaleY(1)}50%{transform:scaleY(0.85) rotate(-3deg)}}
+@keyframes wingWorried{0%,100%{transform:scaleY(1)}50%{transform:scaleY(0.78) rotate(-5deg)}}
+@keyframes wingFrantic{0%,100%{transform:scaleY(1)}50%{transform:scaleY(0.72) rotate(-8deg)}}
+#birdWrap.hop .bird-svg{animation:birdHop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards}
+@keyframes birdHop{0%{transform:translateY(0) scale(1,1)}15%{transform:translateY(0) scale(1.08,0.92)}30%{transform:translateY(-18px) scale(0.95,1.08)}50%{transform:translateY(-24px) scale(1,1)}70%{transform:translateY(-10px)}85%{transform:translateY(0) scale(1.06,0.94)}100%{transform:translateY(0) scale(1,1)}}
+#birdWrap.exhale .bird-svg{animation:birdExhale 0.6s ease-out forwards}
+@keyframes birdExhale{0%{transform:scale(1,1)}20%{transform:scale(1.06,0.92)}60%{transform:scale(0.97,1.02)}100%{transform:scale(1,1)}}
+#birdWrap.squished .bird-svg{animation:birdSquish 0.6s cubic-bezier(0.22,0.61,0.36,1) forwards}
+@keyframes birdSquish{0%{transform:scale(1,1)}20%{transform:scale(1.15,0.7)}35%{transform:scale(0.9,1.1)}50%{transform:scale(1.1,0.5)}65%{transform:scale(0.95,0.85)}80%,100%{transform:scale(1.08,0.35)}}
+
+/* ---- STACK (spike bar + tiles) ---- */
+#stack{position:absolute;left:0;right:0;bottom:0;z-index:5;will-change:transform}
+#spikeBar{position:relative;z-index:2}
+#spikePlank{height:8px;background:linear-gradient(180deg,#B8722E 0%,#8C4A14 50%,#5C2A08 100%);box-shadow:inset 0 1px 0 rgba(255,210,120,0.25),inset 0 -1px 0 rgba(0,0,0,0.35)}
+#spikeBarUp{display:flex;position:absolute;top:-66px;left:0;right:0}
+.sb-up{width:0;height:0;border-left:var(--shw,11px) solid transparent;border-right:var(--shw,11px) solid transparent;border-bottom:66px solid #A8C0D0;flex-shrink:0;position:relative;filter:drop-shadow(0 -4px 5px rgba(0,10,25,0.6)) drop-shadow(-1px 0 0 rgba(200,225,245,0.5)) drop-shadow(2px -1px 2px rgba(15,35,55,0.5))}
+.sb-up::before{content:'';position:absolute;top:0;left:calc(-1 * var(--shw,11px));width:calc(2 * var(--shw,11px));height:66px;background:linear-gradient(115deg,rgba(255,255,255,0.35) 0%,rgba(255,255,255,0.08) 25%,transparent 48%,rgba(0,15,35,0.12) 70%,rgba(0,15,35,0.22) 100%);clip-path:polygon(50% 0,0 100%,100% 100%);pointer-events:none}
+.sb-up::after{content:'';position:absolute;top:0;left:calc(-1 * var(--shw,11px));width:calc(2 * var(--shw,11px));height:66px;background:linear-gradient(100deg,transparent 38%,rgba(255,255,255,0.18) 46%,rgba(255,255,255,0.25) 50%,rgba(255,255,255,0.18) 54%,transparent 62%);clip-path:polygon(50% 0,0 100%,100% 100%);pointer-events:none}
+#tileContainer{position:relative}
+
+/* ---- HYDRAULIC PRESS ---- */
+#hydraulicPress{position:relative;width:100%}
+#pressHead{position:relative;height:28px;overflow:hidden;z-index:50}
+#pressStripes{height:20px;background:repeating-linear-gradient(
+  -45deg,
+  #111 0px,#111 10px,
+  #f5c31a 10px,#f5c31a 20px,
+  #111 20px,#111 30px,
+  #f5c31a 30px,#f5c31a 40px
+);box-shadow:inset 0 2px 0 rgba(255,255,255,0.15),inset 0 -2px 0 rgba(0,0,0,0.4)}
+#pressHeadLip{height:8px;background:linear-gradient(180deg,#888 0%,#666 40%,#444 100%);box-shadow:0 2px 4px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.2)}
+#pressPiston{width:60%;height:3000px;margin:0 auto;background:
+  linear-gradient(90deg,
+    #3a3a3a 0%,
+    #5a5a5a 8%,
+    #888 18%,
+    #b0b0b0 25%,
+    #ccc 35%,
+    #d8d8d8 50%,
+    #ccc 65%,
+    #b0b0b0 75%,
+    #888 82%,
+    #5a5a5a 92%,
+    #3a3a3a 100%
+  );box-shadow:
+    inset 0 0 20px rgba(0,0,0,0.2),
+    -3px 0 6px rgba(0,0,0,0.3),
+    3px 0 6px rgba(0,0,0,0.3);position:relative}
+#pressPiston::before{content:'';position:absolute;top:0;left:0;right:0;height:100%;background:repeating-linear-gradient(
+  180deg,
+  transparent 0px,
+  transparent 38px,
+  rgba(0,0,0,0.12) 38px,
+  rgba(0,0,0,0.12) 40px,
+  transparent 40px,
+  transparent 78px,
+  rgba(255,255,255,0.06) 78px,
+  rgba(255,255,255,0.06) 80px
+);pointer-events:none}
+#pressPiston::after{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:30%;height:100%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.08) 30%,rgba(255,255,255,0.15) 50%,rgba(255,255,255,0.08) 70%,transparent 100%);pointer-events:none}
+#pressBase{width:80%;margin:0 auto}
+#pressBasePlate{height:14px;background:linear-gradient(180deg,#777 0%,#555 50%,#333 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.25),0 2px 6px rgba(0,0,0,0.5);border-radius:0 0 3px 3px}
+#pressBaseBody{height:2000px;background:linear-gradient(180deg,#2a2a2a 0%,#1a1a1a 100%);margin:0 auto;width:90%;box-shadow:inset 0 0 15px rgba(0,0,0,0.5),-2px 0 4px rgba(0,0,0,0.3),2px 0 4px rgba(0,0,0,0.3)}
+
+/* ---- TILES ---- */
+.tile{position:absolute;display:flex;align-items:center;justify-content:center;background:linear-gradient(150deg,#FFF8EE 0%,#F5E8CC 50%,#E8D0A8 100%);border:1px solid rgba(0,0,0,0.06);border-radius:5px;cursor:pointer;box-shadow:0 5px 0 #b89460,0 6px 4px rgba(0,0,0,0.22),-1px 0 0 #b89460,1px 0 0 #b89460,-2px 0 3px rgba(0,0,0,0.12),2px 0 3px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.85),inset 0 -2px 4px rgba(139,90,40,0.12);transition:background 0.15s,box-shadow 0.15s;will-change:auto;line-height:1}
+.tile:active{transform:scale(0.92)!important}
+.tile.selected{border-color:#FACC15;background:linear-gradient(160deg,#fffce8,#ffd466);box-shadow:0 0 16px rgba(250,204,21,0.7),0 0 6px rgba(250,204,21,0.5),0 4px 0 #c89820,0 5px 6px rgba(0,0,0,0.15);transform:scale(1.04)}
+.tile.selected{animation:selPulse 0.2s ease-out}
+@keyframes selPulse{0%{box-shadow:0 0 0 3px rgba(250,204,21,0.3),0 4px 0 #c89820}50%{box-shadow:0 0 0 8px rgba(250,204,21,0.5),0 4px 0 #c89820}100%{box-shadow:0 0 16px rgba(250,204,21,0.7),0 4px 0 #c89820}}
+.tile.clearing{animation:tilePop 0.5s cubic-bezier(0.22,0.61,0.36,1) forwards;pointer-events:none;z-index:100!important}
+@keyframes tilePop{0%{transform:scale(1.04);opacity:1}15%{transform:scale(1.12);opacity:1}28%{transform:scale(1.08);opacity:0.95}100%{transform:scale(0.1);opacity:0}}
+.tile.empty{visibility:hidden;pointer-events:none}
+.tile.mismatch{animation:tileShake 0.4s ease-out;border-color:#EF4444!important;background:linear-gradient(150deg,#ffe0e0,#f5c0c0)!important}
+@keyframes tileShake{0%,100%{transform:translateX(0)}15%{transform:translateX(-6px)}30%{transform:translateX(5px)}45%{transform:translateX(-4px)}60%{transform:translateX(3px)}75%{transform:translateX(-2px)}90%{transform:translateX(1px)}}
+
+/* ---- MATCH PARTICLES ---- */
+.match-particle{position:absolute;border-radius:50%;pointer-events:none;z-index:10;animation:particleRing 0.4s ease-out forwards}
+@keyframes particleRing{0%{transform:translate(0,0) scale(0.7);opacity:1}45%{transform:translate(var(--px),var(--py)) scale(1);opacity:0.85}100%{transform:translate(var(--px),var(--py)) scale(0.6);opacity:0}}
+
+/* ---- SCREEN EFFECTS ---- */
+#screenFlash{position:absolute;inset:0;background:#fff;pointer-events:none;z-index:50;opacity:0}
+#screenFlash.active{animation:flash 0.2s ease-out forwards}
+@keyframes flash{0%{opacity:0}20%{opacity:0.12}100%{opacity:0}}
+#game.shake{animation:screenShake 0.5s ease-out}
+@keyframes screenShake{0%,100%{transform:translateX(0)}10%{transform:translate(-8px,4px)}20%{transform:translate(7px,-3px)}30%{transform:translate(-5px,6px)}40%{transform:translate(6px,-5px)}50%{transform:translate(-4px,3px)}60%{transform:translate(3px,-2px)}70%{transform:translate(-2px,4px)}80%{transform:translate(2px,-1px)}90%{transform:translate(-1px,1px)}}
+
+/* ---- CTA ---- */
+#cta{position:absolute;z-index:15;left:50%;bottom:18%;transform:translateX(-50%);text-align:center;pointer-events:none;transition:opacity 0.5s ease-out}
+#cta.hidden{opacity:0;pointer-events:none}
+#ctaText{font-size:16px;font-weight:700;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,0.5);letter-spacing:0.5px;margin-bottom:4px}
+#ctaText2{font-size:18px;font-weight:800;color:#FACC15;text-shadow:0 1px 4px rgba(0,0,0,0.5);margin-bottom:8px}
+#ctaArrow{animation:ctaBounce 0.8s ease-in-out infinite}
+@keyframes ctaBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+
+/* ---- OVERLAYS ---- */
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity 0.4s}
+.overlay.active{opacity:1;pointer-events:all}
+.overlay-bg{position:absolute;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.overlay-content{position:relative;text-align:center;padding:32px 28px;max-width:320px}
+.overlay-emoji{font-size:60px;margin-bottom:16px;animation:pop 0.5s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes pop{0%{transform:scale(0)}100%{transform:scale(1)}}
+.overlay-title{font-size:28px;font-weight:800;text-shadow:0 2px 8px rgba(0,0,0,0.4);margin-bottom:10px}
+.overlay-sub{font-size:15px;color:rgba(255,255,255,0.7);margin-bottom:10px}
+.overlay-stat{font-size:14px;color:rgba(255,255,255,0.5);margin-bottom:24px}
+.btn{background:linear-gradient(135deg,#4ADE80,#22C55E);color:#fff;border:none;padding:14px 40px;border-radius:25px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 4px 12px rgba(34,197,94,0.4);transition:transform 0.12s;min-width:200px;margin-top:8px}
+.btn:active{transform:scale(0.95)}
+.btn-red{background:linear-gradient(135deg,#EF4444,#DC2626);box-shadow:0 4px 12px rgba(239,68,68,0.4)}
+
+/* ---- WHEEL ---- */
+#wheelOverlay .overlay-bg{background:rgba(0,0,0,0.8)}
+#wheelOverlay .overlay-content{max-width:360px;padding:20px;display:flex;flex-direction:column;align-items:center;height:min(520px,85vh)}
+#wheelTitle{font-size:18px;font-weight:800;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,0.5);margin-bottom:min(20px,2.5vh);letter-spacing:0.5px;flex-shrink:0}
+#wheelWrap{position:relative;width:min(240px,62vw);height:min(240px,62vw);margin:0 auto min(20px,2.5vh);flex-shrink:0}
+#wheel{width:100%;height:100%;border-radius:50%;border:5px solid rgba(255,255,255,0.25);will-change:transform;box-shadow:0 0 20px rgba(0,0,0,0.3),inset 0 0 10px rgba(0,0,0,0.15)}
+#wheelPointer{position:absolute;top:-14px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:28px solid #FACC15;z-index:2;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4))}
+.wheel-icon{position:absolute;top:50%;left:50%;pointer-events:none;font-size:28px;line-height:1;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.85);border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3)}
+#wheelResult{text-align:center;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%}
+#wheelResultName{font-size:24px;font-weight:800;color:#FACC15;margin-bottom:8px;opacity:0;transform:translateY(20px);transition:all 0.3s ease-out}
+#wheelResultDesc{font-size:15px;color:rgba(255,255,255,0.75);margin-bottom:16px;opacity:0;transition:opacity 0.3s ease-out 0.15s;display:none}
+#wheelResultName.show,#wheelResultDesc.show{opacity:1;transform:translateY(0)}
+#wheelBtns{display:flex;gap:10px;justify-content:center;opacity:0;transition:opacity 0.3s ease-out 0.3s;flex-shrink:0}
+#wheelBtns.show{opacity:1}
+.btn-sm{padding:12px 28px;border-radius:22px;font-size:14px;font-weight:700;font-family:inherit;border:none;cursor:pointer;transition:transform 0.12s;min-width:120px}
+.btn-sm:active{transform:scale(0.95)}
+.btn-continue{background:linear-gradient(135deg,#4ADE80,#22C55E);color:#fff;box-shadow:0 3px 10px rgba(34,197,94,0.4)}
+.btn-restart{background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.2)}
+
+/* ---- ROUND TRANSITION ---- */
+#roundTransition{position:absolute;inset:0;z-index:150;pointer-events:none;background:#0a1a0a;opacity:0;transition:opacity 0.4s ease-in-out}
+#roundTransition.fade-in{opacity:1}
+#roundTransition.fade-out{opacity:0}
+
+/* ---- ROUND WIN CELEBRATION ---- */
+.cage-side-fall{position:absolute;top:0;bottom:0;width:10px;z-index:101;pointer-events:none;transition:transform 0.5s cubic-bezier(0.22,0.61,0.36,1),opacity 0.5s}
+.cage-side-fall.left{left:0;transform-origin:bottom left}
+.cage-side-fall.right{right:0;transform-origin:bottom right}
+.cage-side-fall.fallen.left{transform:rotate(-35deg);opacity:0}
+.cage-side-fall.fallen.right{transform:rotate(35deg);opacity:0}
+.heart-particle{position:absolute;pointer-events:none;z-index:102;font-size:24px;animation:heartFloat 1.2s ease-out forwards}
+@keyframes heartFloat{0%{transform:translate(0,0) scale(0.6);opacity:1}40%{transform:translate(var(--hx),var(--hy)) scale(1.4);opacity:0.9}100%{transform:translate(calc(var(--hx) * 1.8),calc(var(--hy) * 2)) scale(0.8);opacity:0}}
+
+/* ---- FROZEN TILES ---- */
+.tile.frozen::after{content:'';position:absolute;inset:0;border-radius:5px;pointer-events:none;background:linear-gradient(135deg,rgba(180,220,255,0.15) 0%,rgba(140,200,255,0.45) 30%,rgba(200,235,255,0.2) 50%,rgba(120,190,255,0.5) 70%,rgba(180,220,255,0.15) 100%);border:1.5px solid rgba(180,220,255,0.5);box-shadow:inset 0 0 8px rgba(160,210,255,0.3),inset 2px 2px 4px rgba(255,255,255,0.2)}
+.tile.thawing{animation:iceShatter 0.45s ease-out}
+@keyframes iceShatter{0%{box-shadow:0 0 0 3px rgba(180,220,255,1),0 0 12px rgba(140,200,255,0.8)}25%{box-shadow:0 0 20px rgba(180,220,255,0.7),0 0 6px rgba(255,255,255,0.6)}50%{transform:scale(1.06)}100%{box-shadow:none;transform:scale(1)}}
+.ice-shard{position:absolute;width:6px;height:6px;background:rgba(180,220,255,0.95);border-radius:1px;pointer-events:none;z-index:10;transform:translate(-50%,-50%);animation:iceShardFly 0.5s ease-out forwards}
+@keyframes iceShardFly{0%{transform:translate(-50%,-50%) scale(1.2);opacity:1}40%{opacity:0.9}100%{transform:translate(calc(-50% + var(--ix) * 1.5),calc(-50% + var(--iy) * 1.5)) scale(0.2) rotate(120deg);opacity:0}}
+
+/* ---- TOP PRESS (for Lower Ceiling modifier — exact mirror of bottom press) ---- */
+#topPress{position:absolute;top:0;left:0;right:0;z-index:2;overflow:hidden;height:0;pointer-events:none;transition:height 0.5s ease-out}
+#topPressInner{height:100%;transform:scaleY(-1);transform-origin:center}
+#topPressInner .tp-head{position:relative;height:28px;overflow:hidden}
+#topPressInner .tp-stripes{height:20px;background:repeating-linear-gradient(-45deg,#111 0px,#111 10px,#f5c31a 10px,#f5c31a 20px,#111 20px,#111 30px,#f5c31a 30px,#f5c31a 40px);box-shadow:inset 0 2px 0 rgba(255,255,255,0.15),inset 0 -2px 0 rgba(0,0,0,0.4)}
+#topPressInner .tp-lip{height:8px;background:linear-gradient(180deg,#888 0%,#666 40%,#444 100%);box-shadow:0 2px 4px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.2)}
+#topPressInner .tp-piston{width:60%;height:3000px;margin:0 auto;background:linear-gradient(90deg,#3a3a3a 0%,#5a5a5a 8%,#888 18%,#b0b0b0 25%,#ccc 35%,#d8d8d8 50%,#ccc 65%,#b0b0b0 75%,#888 82%,#5a5a5a 92%,#3a3a3a 100%);box-shadow:inset 0 0 20px rgba(0,0,0,0.2),-3px 0 6px rgba(0,0,0,0.3),3px 0 6px rgba(0,0,0,0.3);position:relative}
+#topPressInner .tp-piston::before{content:'';position:absolute;top:0;left:0;right:0;height:100%;background:repeating-linear-gradient(180deg,transparent 0px,transparent 38px,rgba(0,0,0,0.12) 38px,rgba(0,0,0,0.12) 40px,transparent 40px,transparent 78px,rgba(255,255,255,0.06) 78px,rgba(255,255,255,0.06) 80px);pointer-events:none}
+#topPressInner .tp-piston::after{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:30%;height:100%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.08) 30%,rgba(255,255,255,0.15) 50%,rgba(255,255,255,0.08) 70%,transparent 100%);pointer-events:none}
+#topPressInner .tp-base{width:80%;margin:0 auto}
+#topPressInner .tp-basePlate{height:14px;background:linear-gradient(180deg,#777 0%,#555 50%,#333 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.25),0 2px 6px rgba(0,0,0,0.5);border-radius:0 0 3px 3px}
+#topPressInner .tp-baseBody{height:2000px;background:linear-gradient(180deg,#2a2a2a 0%,#1a1a1a 100%);margin:0 auto;width:90%;box-shadow:inset 0 0 15px rgba(0,0,0,0.5),-2px 0 4px rgba(0,0,0,0.3),2px 0 4px rgba(0,0,0,0.3)}
+
+/* ---- CONFETTI ---- */
+.confetti{position:absolute;pointer-events:none;z-index:101;border-radius:2px;animation:confettiFall var(--dur) cubic-bezier(0.22,0.61,0.36,1) forwards;animation-delay:var(--delay)}
+@keyframes confettiFall{0%{transform:translateY(0) rotate(0deg) scale(1);opacity:1}100%{transform:translateY(var(--fall)) rotate(var(--spin)) scale(0.2);opacity:0}}
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="topPlank">
+    <div id="roundBadge">ROUND 1/5</div>
+    <div id="modBadges"></div>
+  </div>
+  <div id="cage">
+    <div id="cageWallL"></div>
+    <div id="cageWallR"></div>
+    <div id="cageForest"></div>
+    <div id="cageNet"></div>
+    <div id="topPress">
+      <div id="topPressInner">
+        <div class="tp-head">
+          <div class="tp-stripes"></div>
+          <div class="tp-lip"></div>
+        </div>
+        <div class="tp-piston"></div>
+        <div class="tp-base">
+          <div class="tp-basePlate"></div>
+          <div class="tp-baseBody"></div>
+        </div>
+      </div>
+    </div>
+    <div id="ceilingSpikes"></div>
+    <div id="dangerOverlay"></div>
+    <div id="screenFlash"></div>
+    <div id="birdWrap" class="calm">
+      <svg class="bird-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="48" cy="52" rx="28" ry="25" fill="#E8503E"/>
+        <ellipse cx="48" cy="52" rx="28" ry="25" fill="url(#bodyGrad)"/>
+        <ellipse cx="42" cy="58" rx="16" ry="14" fill="#D4B0D8" opacity="0.85"/>
+        <g class="wing-flap">
+          <ellipse cx="58" cy="48" rx="18" ry="13" fill="#7A4422" transform="rotate(-10,58,48)"/>
+          <ellipse cx="58" cy="48" rx="14" ry="9" fill="#8B5633" transform="rotate(-10,58,48)"/>
+          <line x1="48" y1="44" x2="72" y2="40" stroke="#5C3318" stroke-width="1" opacity="0.4"/>
+          <line x1="48" y1="48" x2="72" y2="46" stroke="#5C3318" stroke-width="1" opacity="0.4"/>
+        </g>
+        <ellipse cx="38" cy="38" rx="8" ry="6" fill="#F06050" opacity="0.5"/>
+        <circle cx="36" cy="42" r="9" fill="#fff" stroke="#333" stroke-width="1.5"/>
+        <circle id="birdPupil" cx="34" cy="41" r="5.5" fill="#222"/>
+        <circle cx="32" cy="39" r="2.5" fill="#fff"/>
+        <circle cx="36" cy="43" r="1.2" fill="#fff" opacity="0.6"/>
+        <polygon points="24,47 18,50 24,53" fill="#F4A030"/>
+        <line x1="24" y1="50" x2="18" y2="50" stroke="#D48820" stroke-width="0.8"/>
+        <ellipse cx="28" cy="52" rx="5" ry="3" fill="#F4A0A0" opacity="0.5"/>
+        <polygon points="72,42 85,34 82,44 85,48 72,50" fill="#7A4422"/>
+        <g fill="#E8923E" stroke="#C07020" stroke-width="0.8">
+          <path d="M40,75 L38,82 L34,82 M38,82 L38,84 M38,82 L42,82"/>
+          <path d="M52,75 L54,82 L50,82 M54,82 L54,84 M54,82 L58,82"/>
+        </g>
+        <ellipse cx="42" cy="30" rx="3" ry="5" fill="#8B4022" transform="rotate(-15,42,30)"/>
+        <ellipse cx="46" cy="29" rx="2.5" ry="4" fill="#7A3518" transform="rotate(5,46,29)"/>
+        <defs>
+          <radialGradient id="bodyGrad" cx="40%" cy="35%" r="60%">
+            <stop offset="0%" stop-color="#F06850" stop-opacity="0.6"/>
+            <stop offset="100%" stop-color="#C83828" stop-opacity="0.3"/>
+          </radialGradient>
+        </defs>
+      </svg>
+    </div>
+    <div id="cta">
+      <div id="ctaText">Tap 3 matching fruits!</div>
+      <div id="ctaText2">Save the Bird!</div>
+      <div id="ctaArrow">
+        <svg width="24" height="14" viewBox="0 0 24 14"><polyline points="2,2 12,12 22,2" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/></svg>
+      </div>
+    </div>
+    <div id="stack">
+      <div id="spikeBar">
+        <div id="spikeBarUp"></div>
+        <div id="spikePlank"></div>
+      </div>
+      <div id="tileContainer"></div>
+      <div id="hydraulicPress">
+        <div id="pressHead">
+          <div id="pressStripes"></div>
+          <div id="pressHeadLip"></div>
+        </div>
+        <div id="pressPiston"></div>
+        <div id="pressBase">
+          <div id="pressBasePlate"></div>
+          <div id="pressBaseBody"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="cageBottom"></div>
+
+  <!-- OVERLAYS -->
+  <div class="overlay" id="wheelOverlay">
+    <div class="overlay-bg"></div>
+    <div class="overlay-content">
+      <div id="wheelTitle">WHEEL OF FATE</div>
+      <div id="wheelWrap">
+        <div id="wheel"></div>
+        <div id="wheelPointer"></div>
+      </div>
+      <div id="wheelResult">
+        <div id="wheelResultName"></div>
+        <div id="wheelResultDesc"></div>
+      </div>
+      <div id="wheelBtns">
+        <button class="btn-sm btn-restart" onclick="G.wheelRestart()">Start Over</button>
+        <button class="btn-sm btn-continue" onclick="G.wheelContinue()">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="winOverlay">
+    <div class="overlay-bg" style="background:rgba(0,40,0,0.8)"></div>
+    <div class="overlay-content">
+      <div class="overlay-emoji" id="winEmoji">&#x1F426;</div>
+      <div class="overlay-title" style="color:#4ADE80" id="winTitle">BIRD SAVED!</div>
+      <div class="overlay-sub" id="winSub">You cleared all 5 rounds!</div>
+      <button class="btn" onclick="G.restart()">PLAY AGAIN</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="loseOverlay">
+    <div class="overlay-bg" style="background:rgba(40,0,0,0.8)"></div>
+    <div class="overlay-content">
+      <div class="overlay-emoji">&#x1F62E;</div>
+      <div class="overlay-title" style="color:#EF4444">OH NO!</div>
+      <div class="overlay-sub" id="loseSub">The bird couldn't escape!</div>
+      <button class="btn" onclick="G.restart()">START OVER</button>
+    </div>
+  </div>
+
+  <div id="roundTransition"></div>
+
+  <!-- DEBUG TOGGLE (invisible tap target top-right) -->
+  <div id="debugToggle" onclick="document.getElementById('debug').style.display=document.getElementById('debug').style.display==='flex'?'none':'flex'" style="position:absolute;top:0;right:0;width:48px;height:48px;z-index:201;cursor:pointer"></div>
+  <!-- DEBUG CONTROLS (hidden by default) -->
+  <div id="debug" style="position:absolute;bottom:4px;left:4px;z-index:200;display:none;gap:3px;flex-wrap:nowrap;white-space:nowrap">
+    <button onclick="if(S.phase==='playing')loseGame()" style="font-size:10px;padding:3px 7px;opacity:0.7;border-radius:4px;border:1px solid #e44;background:rgba(40,0,0,0.6);color:#f88">LOSE</button>
+    <button onclick="debugWinRound()" style="font-size:10px;padding:3px 7px;opacity:0.7;border-radius:4px;border:1px solid #4ade80;background:rgba(0,40,0,0.6);color:#4ade80">WIN</button>
+    <button onclick="debugApplyMod(0)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #e44;background:rgba(80,0,0,0.5);color:#fff" title="Giant Bird">&#x1F426;</button>
+    <button onclick="debugApplyMod(1)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #68f;background:rgba(0,0,80,0.5);color:#fff" title="Lower Ceiling">&#x1F5DC;</button>
+    <button onclick="debugApplyMod(2)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #a5f;background:rgba(50,0,80,0.5);color:#fff" title="More Fruits">&#x1F3B2;</button>
+    <button onclick="debugApplyMod(3)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #38bdf8;background:rgba(0,40,80,0.5);color:#fff" title="Ice Tiles">&#x2744;&#xFE0F;</button>
+    <button onclick="debugApplyMod(4)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #fc0;background:rgba(80,60,0,0.5);color:#fff" title="Faster Rise">&#x23F1;&#xFE0F;</button>
+    <button onclick="debugApplyMod(5)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #e4a;background:rgba(80,0,40,0.5);color:#fff" title="Tiny Tiles">&#x1F50D;</button>
+  </div>
+</div>
+
+<script>
+// ===== CONFIG & CONSTANTS =====
+const ICONS = ['\u{1F34E}','\u{1F347}','\u{1F95D}','\u{1F34C}','\u{1F965}','\u{1F351}','\u{1F34A}','\u{1F353}','\u{1F352}','\u{1F349}','\u{1F34D}','\u{1F96D}'];
+const ICON_COLORS = ['#EF4444','#8B5CF6','#22C55E','#FACC15','#F5F0E0','#FBBD8B','#F97316','#EC4899','#DC2626','#22C55E','#EAB308','#F59E0B'];
+const HGAP = 1;
+const VGAP = 3;
+const SPIKE_H = 66;
+const PLANK_H = 8;
+const CEIL_SPIKE_H = 72;
+const PRESS_H = 5042; // pressHead(28) + pressPiston(3000) + pressBase(2014)
+
+const ROUND_CFG = [
+  { rows: 9, types: 6, speed: 14, seed: true },
+  { rows: 9, types: 6, speed: 15, seed: false },
+  { rows: 9, types: 6, speed: 16, seed: false },
+  { rows: 9, types: 6, speed: 17, seed: false },
+  { rows: 9, types: 6, speed: 18, seed: false },
+];
+const TOTAL_ROUNDS = ROUND_CFG.length;
+
+const MODIFIERS = [
+  { name: 'Giant Bird',     icon: '\u{1F426}', color: '#EF4444', border: '#EF4444', apply: s => { s.birdScale *= 1.5 } },
+  { name: 'Lower Ceiling',  icon: '\u{1F5DC}', color: '#60A5FA', border: '#60A5FA', apply: s => { s.ceilOffset += 80 } },
+  { name: 'Extra Fruit',    icon: '\u{1F34A}', color: '#F97316', border: '#F97316', apply: s => { s.extraTypes += 1 } },
+  { name: 'Ice Tiles',      icon: '\u{2744}\u{FE0F}', color: '#38BDF8', border: '#38BDF8', apply: s => { s.frozenTiles = true } },
+  { name: 'Faster Rise',    icon: '\u{23F1}\u{FE0F}', color: '#FACC15', border: '#FACC15', apply: s => { s.speedMul *= 1.2 } },
+  { name: 'Tiny Tiles',     icon: '\u{1F50D}', color: '#EC4899', border: '#EC4899', apply: s => { s.tinyTiles = true } },
+];
+
+// ===== BIRD VARIANTS (one per round) =====
+const BIRD_SVGS = [
+  // Round 1: Red Robin — small, round and plump
+  `<ellipse cx="48" cy="52" rx="24" ry="24" fill="#E8503E"/>
+<ellipse cx="48" cy="52" rx="24" ry="24" fill="url(#bGrad)"/>
+<ellipse cx="43" cy="59" rx="14" ry="13" fill="#D4B0D8" opacity="0.85"/>
+<g class="wing-flap"><ellipse cx="58" cy="48" rx="15" ry="12" fill="#7A4422" transform="rotate(-10,58,48)"/><ellipse cx="58" cy="48" rx="11" ry="8" fill="#8B5633" transform="rotate(-10,58,48)"/><line x1="48" y1="44" x2="68" y2="40" stroke="#5C3318" stroke-width="1" opacity="0.4"/><line x1="48" y1="48" x2="68" y2="46" stroke="#5C3318" stroke-width="1" opacity="0.4"/></g>
+<ellipse cx="38" cy="38" rx="7" ry="5" fill="#F06050" opacity="0.5"/>
+<circle cx="36" cy="42" r="8" fill="#fff" stroke="#333" stroke-width="1.5"/><circle id="birdPupil" cx="34" cy="41" r="5" fill="#222"/><circle cx="32" cy="39" r="2.3" fill="#fff"/><circle cx="36" cy="43" r="1.1" fill="#fff" opacity="0.6"/>
+<polygon points="26,47 20,50 26,53" fill="#F4A030"/><line x1="26" y1="50" x2="20" y2="50" stroke="#D48820" stroke-width="0.8"/>
+<ellipse cx="30" cy="52" rx="4" ry="2.5" fill="#F4A0A0" opacity="0.5"/>
+<polygon points="68,44 76,38 74,46 76,50 68,50" fill="#7A4422"/>
+<g fill="#E8923E" stroke="#C07020" stroke-width="0.8"><path d="M40,75 L38,82 L34,82 M38,82 L38,84 M38,82 L42,82"/><path d="M52,75 L54,82 L50,82 M54,82 L54,84 M54,82 L58,82"/></g>
+<defs><radialGradient id="bGrad" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#F06850" stop-opacity="0.6"/><stop offset="100%" stop-color="#C83828" stop-opacity="0.3"/></radialGradient></defs>`,
+
+  // Round 2: Green Parakeet — elongated, long tail, pointed head crest
+  `<ellipse cx="46" cy="52" rx="22" ry="26" fill="#22C55E"/>
+<ellipse cx="46" cy="52" rx="22" ry="26" fill="url(#bGrad)"/>
+<ellipse cx="40" cy="60" rx="12" ry="14" fill="#BBF7D0" opacity="0.7"/>
+<g class="wing-flap"><ellipse cx="58" cy="44" rx="20" ry="11" fill="#15803D" transform="rotate(-15,58,44)"/><ellipse cx="58" cy="44" rx="15" ry="7" fill="#16A34A" transform="rotate(-15,58,44)"/><line x1="46" y1="40" x2="74" y2="34" stroke="#14532D" stroke-width="1" opacity="0.4"/><line x1="46" y1="44" x2="74" y2="40" stroke="#14532D" stroke-width="1" opacity="0.4"/></g>
+<ellipse cx="36" cy="34" rx="7" ry="5" fill="#4ADE80" opacity="0.5"/>
+<circle cx="34" cy="38" r="8" fill="#fff" stroke="#1a5c2a" stroke-width="1.5"/><circle id="birdPupil" cx="32" cy="37" r="4.8" fill="#222"/><circle cx="30" cy="35" r="2.2" fill="#fff"/><circle cx="34" cy="39" r="1.0" fill="#fff" opacity="0.6"/>
+<path d="M22,42 C16,39 14,44 16,47 C14,44 16,51 22,49 Z" fill="#6B7280" stroke="#4B5563" stroke-width="0.6"/>
+<ellipse cx="26" cy="48" rx="4" ry="2.5" fill="#86EFAC" opacity="0.4"/>
+<polygon points="66,38 88,26 86,36 90,40 88,46 66,48" fill="#15803D"/><polygon points="66,48 90,50 88,56 86,60 66,54" fill="#0D9488"/><polygon points="66,54 84,62 82,66 66,58" fill="#15803D" opacity="0.7"/>
+<ellipse cx="38" cy="24" rx="3" ry="8" fill="#16A34A" transform="rotate(-20,38,24)"/><ellipse cx="42" cy="22" rx="2" ry="7" fill="#22C55E" transform="rotate(-10,42,22)"/><ellipse cx="35" cy="26" rx="2" ry="6" fill="#15803D" transform="rotate(-30,35,26)"/>
+<g fill="#D97706" stroke="#92400E" stroke-width="0.8"><path d="M38,77 L36,83 L32,83 M36,83 L36,85 M36,83 L40,83"/><path d="M50,77 L52,83 L48,83 M52,83 L52,85 M52,83 L56,83"/></g>
+<defs><radialGradient id="bGrad" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#4ADE80" stop-opacity="0.5"/><stop offset="100%" stop-color="#15803D" stop-opacity="0.3"/></radialGradient></defs>`,
+
+  // Round 3: Yellow Canary — tiny and plump, big round head, minimal tail
+  `<ellipse cx="50" cy="55" rx="20" ry="19" fill="#FACC15"/>
+<ellipse cx="50" cy="55" rx="20" ry="19" fill="url(#bGrad)"/>
+<ellipse cx="46" cy="60" rx="12" ry="11" fill="#FEF9C3" opacity="0.8"/>
+<g class="wing-flap"><ellipse cx="58" cy="50" rx="12" ry="10" fill="#CA8A04" transform="rotate(-8,58,50)"/><ellipse cx="58" cy="50" rx="9" ry="7" fill="#EAB308" transform="rotate(-8,58,50)"/><line x1="50" y1="47" x2="66" y2="44" stroke="#854D0E" stroke-width="0.8" opacity="0.4"/></g>
+<circle cx="38" cy="40" r="14" fill="#FACC15"/><circle cx="38" cy="40" r="14" fill="url(#bGrad)"/>
+<circle cx="34" cy="39" r="9" fill="#fff" stroke="#854D0E" stroke-width="1.5"/><circle id="birdPupil" cx="32" cy="38" r="5.5" fill="#222"/><circle cx="30" cy="36" r="2.5" fill="#fff"/><circle cx="34" cy="40" r="1.2" fill="#fff" opacity="0.6"/>
+<polygon points="24,43 17,45 24,48" fill="#F97316"/><line x1="24" y1="45.5" x2="17" y2="45" stroke="#C2410C" stroke-width="0.8"/>
+<ellipse cx="28" cy="48" rx="3.5" ry="2" fill="#FDE68A" opacity="0.5"/>
+<polygon points="68,48 74,44 73,50 68,52" fill="#CA8A04"/>
+<g fill="#D97706" stroke="#92400E" stroke-width="0.8"><path d="M42,75 L40,82 L36,82 M40,82 L40,84 M40,82 L44,82"/><path d="M54,75 L56,82 L52,82 M56,82 L56,84 M56,82 L60,82"/></g>
+<defs><radialGradient id="bGrad" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#FDE047" stop-opacity="0.5"/><stop offset="100%" stop-color="#A16207" stop-opacity="0.3"/></radialGradient></defs>`,
+
+  // Round 4: Blue Macaw — largest bird, prominent curved beak, long dramatic tail, head crest
+  `<ellipse cx="46" cy="50" rx="28" ry="30" fill="#2563EB"/>
+<ellipse cx="46" cy="50" rx="28" ry="30" fill="url(#bGrad)"/>
+<ellipse cx="40" cy="58" rx="16" ry="17" fill="#93C5FD" opacity="0.7"/>
+<g class="wing-flap"><ellipse cx="60" cy="42" rx="24" ry="14" fill="#1D4ED8" transform="rotate(-15,60,42)"/><ellipse cx="60" cy="42" rx="18" ry="9" fill="#2563EB" transform="rotate(-15,60,42)"/><line x1="44" y1="38" x2="80" y2="30" stroke="#1E3A8A" stroke-width="1.2" opacity="0.5"/><line x1="44" y1="42" x2="80" y2="36" stroke="#1E3A8A" stroke-width="1.2" opacity="0.5"/><line x1="44" y1="46" x2="78" y2="42" stroke="#1E3A8A" stroke-width="1" opacity="0.3"/></g>
+<ellipse cx="34" cy="30" rx="10" ry="8" fill="#60A5FA" opacity="0.5"/>
+<circle cx="30" cy="34" r="11" fill="#fff" stroke="#1E3A8A" stroke-width="1.8"/><circle id="birdPupil" cx="28" cy="33" r="6.5" fill="#111"/><circle cx="26" cy="31" r="3" fill="#fff"/><circle cx="30" cy="35" r="1.5" fill="#fff" opacity="0.6"/>
+<path d="M18,38 C10,32 6,38 8,44 C6,42 4,48 8,50 C6,48 8,52 18,48 Z" fill="#F59E0B" stroke="#D97706" stroke-width="0.8"/>
+<path d="M12,42 C8,40 6,43 8,46" fill="none" stroke="#FDE68A" stroke-width="1" opacity="0.6"/>
+<ellipse cx="22" cy="46" rx="5" ry="3.5" fill="#FBBF24" opacity="0.4"/>
+<path d="M22,30 C20,18 24,10 30,8" fill="none" stroke="#1E3A8A" stroke-width="1.5"/>
+<ellipse cx="30" cy="10" rx="3" ry="5" fill="#1D4ED8" transform="rotate(10,30,10)"/>
+<ellipse cx="26" cy="14" rx="2.5" ry="6" fill="#2563EB" transform="rotate(-5,26,14)"/>
+<ellipse cx="34" cy="12" rx="2" ry="4" fill="#60A5FA" transform="rotate(20,34,12)"/>
+<polygon points="72,38 96,22 94,34 98,40 96,48 72,48" fill="#1D4ED8"/><polygon points="72,48 96,50 94,56 96,66 72,56" fill="#EF4444"/><polygon points="72,56 92,62 90,68 72,62" fill="#1D4ED8" opacity="0.7"/>
+<g fill="#4B5563" stroke="#374151" stroke-width="0.8"><path d="M36,78 L34,84 L30,84 M34,84 L34,86 M34,84 L38,84"/><path d="M52,78 L54,84 L50,84 M54,84 L54,86 M54,84 L58,84"/></g>
+<defs><radialGradient id="bGrad" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#60A5FA" stop-opacity="0.5"/><stop offset="100%" stop-color="#1E40AF" stop-opacity="0.3"/></radialGradient></defs>`,
+
+  // Round 5: Orange Toucan — medium body, very large distinctive beak, short tail
+  `<ellipse cx="52" cy="52" rx="22" ry="23" fill="#1a1a2e"/>
+<ellipse cx="52" cy="52" rx="22" ry="23" fill="url(#bGrad)"/>
+<ellipse cx="48" cy="58" rx="13" ry="13" fill="#F8FAFC" opacity="0.85"/>
+<g class="wing-flap"><ellipse cx="62" cy="48" rx="16" ry="12" fill="#0f0f23" transform="rotate(-8,62,48)"/><ellipse cx="62" cy="48" rx="12" ry="7" fill="#1a1a2e" transform="rotate(-8,62,48)"/><line x1="52" y1="44" x2="74" y2="40" stroke="#000" stroke-width="1" opacity="0.3"/></g>
+<circle cx="38" cy="38" r="13" fill="#1a1a2e"/><circle cx="38" cy="38" r="13" fill="url(#bGrad)"/>
+<circle cx="36" cy="36" r="9" fill="#fff" stroke="#1E293B" stroke-width="1.5"/><circle id="birdPupil" cx="34" cy="35" r="5.5" fill="#222"/><circle cx="32" cy="33" r="2.5" fill="#fff"/><circle cx="36" cy="37" r="1.2" fill="#fff" opacity="0.6"/>
+<path d="M26,38 C18,30 4,28 0,36 C-2,40 2,50 8,52 C4,50 6,54 10,54 C14,54 20,50 26,46 Z" fill="#F97316" stroke="#EA580C" stroke-width="0.8"/>
+<path d="M22,40 C14,34 6,34 4,38" fill="none" stroke="#FCD34D" stroke-width="1.8"/>
+<path d="M20,42 C12,38 6,40 4,44" fill="none" stroke="#FDE68A" stroke-width="1" opacity="0.5"/>
+<path d="M10,40 L10,48" fill="none" stroke="#1a1a2e" stroke-width="0.8" opacity="0.6"/>
+<ellipse cx="30" cy="46" rx="4" ry="2.5" fill="#FDBA74" opacity="0.4"/>
+<polygon points="72,46 80,42 78,48 80,52 72,52" fill="#0f0f23"/>
+<g fill="#4B5563" stroke="#1E293B" stroke-width="0.8"><path d="M44,75 L42,82 L38,82 M42,82 L42,84 M42,82 L46,82"/><path d="M56,75 L58,82 L54,82 M58,82 L58,84 M58,82 L62,82"/></g>
+<defs><radialGradient id="bGrad" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#334155" stop-opacity="0.4"/><stop offset="100%" stop-color="#0f172a" stop-opacity="0.3"/></radialGradient></defs>`,
+];
+
+// ===== STATE =====
+const S = {
+  phase: 'idle',
+  round: 0,
+  grid: [],
+  totalRows: 0,
+  cols: 7,
+  selected: [],
+  visiblePx: 0,
+  rising: false,
+  cascading: false,
+  birdScale: 1,
+  ceilOffset: 0,
+  extraTypes: 0,
+  speedMul: 1,
+  tileScale: 1,
+  tinyTiles: false,
+  frozenTiles: false,
+  closestCall: Infinity,
+  modifiers: [],
+  remainingMods: [],
+  nextTileId: 0,
+  lastTs: 0,
+  cellSize: 0,
+  cageH: 0,
+  cageW: 0,
+  ctaDismissed: false,
+  birdMoveTimer: 0,
+  birdX: 0,
+  birdY: 0,
+  birdDir: 1,
+  birdTargetY: 0,
+  stackBounceOffset: 0,
+  speedScale: 1,
+};
+
+// ===== DOM REFS =====
+const $ = id => document.getElementById(id);
+const cage = $('cage');
+const tileContainer = $('tileContainer');
+const stack = $('stack');
+const birdWrap = $('birdWrap');
+const birdSvg = birdWrap.querySelector('.bird-svg');
+
+// ===== UTILITIES =====
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ===== MEASUREMENT =====
+const WALL_W = 10; // cage wall width (padding, rendered as div overlays)
+function measure() {
+  S.cageH = cage.clientHeight;
+  S.cageW = cage.clientWidth;
+  S.cols = S.tinyTiles ? 8 : 7;
+  const avail = S.cageW - WALL_W * 2;
+  S.cellSize = (avail - (S.cols - 1) * HGAP) / S.cols;
+  S.speedScale = S.cageH / 700; // normalize speed for screen height
+}
+
+// ===== SPIKES =====
+function initSpikes() {
+  const contentW = S.cageW - WALL_W * 2; // width between the brown walls
+  const n = Math.floor(contentW / 22);    // whole spikes that fit at base size
+  const halfW = contentW / n / 2;         // exact half-width so N spikes fill contentW
+
+  for (const [id, cls] of [['ceilingSpikes','spike-down'],['spikeBarUp','sb-up']]) {
+    const el = $(id); el.innerHTML = '';
+    el.style.cssText = '';
+    el.style.left = WALL_W + 'px';
+    el.style.right = WALL_W + 'px';
+    el.style.setProperty('--shw', halfW + 'px');
+    for (let i = 0; i < n; i++) {
+      const d = document.createElement('div'); d.className = cls;
+      el.appendChild(d);
+    }
+  }
+}
+
+// ===== SPIKE GLINT SCHEDULER =====
+let _spikeGlintTimer = null;
+function startSpikeGlint() {
+  if (_spikeGlintTimer) clearTimeout(_spikeGlintTimer);
+  function tick() {
+    if (S.phase !== 'playing') {
+      _spikeGlintTimer = setTimeout(tick, 2000);
+      return;
+    }
+    // 70% chance bottom (plank) spikes, 30% ceiling
+    const isBottom = Math.random() < 0.7;
+    const container = $(isBottom ? 'spikeBarUp' : 'ceilingSpikes');
+    const spikeClass = isBottom ? '.sb-up' : '.spike-down';
+    const spikes = container.querySelectorAll(spikeClass);
+    if (spikes.length > 0) {
+      const spike = spikes[Math.floor(Math.random() * spikes.length)];
+      const spikeRect = spike.getBoundingClientRect();
+      const cageRect = cage.getBoundingClientRect();
+      // Subtract cage border because glint is positioned relative to padding edge
+      const x = spikeRect.left - cageRect.left - cage.clientLeft + spikeRect.width / 2;
+      const y = isBottom
+        ? spikeRect.top - cageRect.top - cage.clientTop
+        : spikeRect.bottom - cageRect.top - cage.clientTop;
+      const glint = document.createElement('div');
+      glint.className = 'spike-tip-glint';
+      glint.style.left = x + 'px';
+      glint.style.top = y + 'px';
+      cage.appendChild(glint);
+      setTimeout(() => glint.remove(), 280);
+    }
+    _spikeGlintTimer = setTimeout(tick, 1800 + Math.random() * 4500);
+  }
+  tick();
+}
+
+// ===== ICE BREAK VFX =====
+function spawnIceBreak(el) {
+  const rect = el.getBoundingClientRect();
+  const gameRect = $('game').getBoundingClientRect();
+  const cx = rect.left - gameRect.left + rect.width / 2;
+  const cy = rect.top - gameRect.top + rect.height / 2;
+  for (let i = 0; i < 12; i++) {
+    const shard = document.createElement('div');
+    shard.className = 'ice-shard';
+    const angle = (Math.PI * 2 * i) / 12 + (Math.random() - 0.5) * 0.5;
+    const dist = 18 + Math.random() * 28;
+    shard.style.cssText = `left:${cx}px;top:${cy}px;--ix:${Math.cos(angle)*dist}px;--iy:${Math.sin(angle)*dist}px`;
+    $('game').appendChild(shard);
+    setTimeout(() => shard.remove(), 550);
+  }
+}
+
+// ===== TILE POOL GENERATION =====
+function genPool(totalTiles, typeCount) {
+  const icons = ICONS.slice(0, typeCount);
+  const groups = Math.ceil(totalTiles / 3);
+  let pool = [];
+  for (let i = 0; i < groups; i++) {
+    const ic = icons[i % icons.length];
+    pool.push(ic, ic, ic);
+  }
+  pool = pool.slice(0, totalTiles);
+  return shuffle(pool);
+}
+
+function seedEasyMatch(grid, cols, totalRows) {
+  const topRow = totalRows - 1;
+  if (topRow < 0) return;
+  const row = grid[topRow];
+  const counts = {};
+  row.forEach(c => { if (c) counts[c.icon] = (counts[c.icon] || 0) + 1; });
+  for (const icon in counts) { if (counts[icon] >= 3) return; }
+  const targetIcon = row.find(c => c)?.icon;
+  if (!targetIcon) return;
+  const positions = [];
+  for (let c = 0; c < cols; c++) {
+    if (row[c] && row[c].icon !== targetIcon) positions.push(c);
+  }
+  shuffle(positions);
+  const existing = counts[targetIcon] || 0;
+  const needed = 3 - existing;
+  for (let i = 0; i < Math.min(needed, positions.length); i++) {
+    const oldIcon = row[positions[i]].icon;
+    row[positions[i]].icon = targetIcon;
+    let swapped = false;
+    for (let r = 0; r < totalRows - 1 && !swapped; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (grid[r][c] && grid[r][c].icon === targetIcon) {
+          grid[r][c].icon = oldIcon;
+          swapped = true;
+          break;
+        }
+      }
+    }
+  }
+}
+
+// ===== GRID INIT =====
+function initGrid() {
+  const cfg = ROUND_CFG[S.round];
+  const types = cfg.types + S.extraTypes;
+  // Tiny Tiles: more cols → scale rows to keep ~same total tile count
+  const baseTiles = cfg.rows * 7;
+  S.totalRows = S.tinyTiles ? Math.round(baseTiles / S.cols) : cfg.rows;
+  // Ensure total tile count is divisible by 3 so every tile can be matched
+  while ((S.totalRows * S.cols) % 3 !== 0) S.totalRows++;
+  const total = S.totalRows * S.cols;
+  const pool = genPool(total, Math.min(types, ICONS.length));
+  S.grid = [];
+  let idx = 0;
+  for (let r = 0; r < S.totalRows; r++) {
+    const row = [];
+    for (let c = 0; c < S.cols; c++) {
+      row.push({ icon: pool[idx], id: S.nextTileId++ });
+      idx++;
+    }
+    S.grid.push(row);
+  }
+  if (cfg.seed) seedEasyMatch(S.grid, S.cols, S.totalRows);
+
+  // Frozen Tiles modifier: freeze ~20% of tiles
+  if (S.frozenTiles) {
+    const positions = [];
+    for (let r = 0; r < S.totalRows; r++) {
+      for (let c = 0; c < S.cols; c++) {
+        if (S.grid[r][c]) positions.push({ r, c });
+      }
+    }
+    shuffle(positions);
+    const frozenCount = Math.floor(S.totalRows * S.cols * 0.2);
+    for (let i = 0; i < Math.min(frozenCount, positions.length); i++) {
+      S.grid[positions[i].r][positions[i].c].frozen = true;
+    }
+  }
+}
+
+// ===== TILE RENDERING =====
+function tileTop(row) {
+  return (S.totalRows - 1 - row) * (S.cellSize + VGAP);
+}
+function tileLeft(col) {
+  return WALL_W + col * (S.cellSize + HGAP);
+}
+function containerHeight() {
+  return S.totalRows * S.cellSize + (S.totalRows - 1) * VGAP;
+}
+
+function renderTiles() {
+  tileContainer.innerHTML = '';
+  tileContainer.style.height = containerHeight() + 'px';
+  const fontSize = Math.round(S.cellSize * 0.65 * S.tileScale);
+  for (let r = 0; r < S.totalRows; r++) {
+    for (let c = 0; c < S.cols; c++) {
+      const cell = S.grid[r][c];
+      if (!cell) continue;
+      const el = document.createElement('div');
+      el.className = 'tile';
+      el.dataset.id = cell.id;
+      el.dataset.row = r;
+      el.dataset.col = c;
+      el.textContent = cell.icon;
+      el.style.width = S.cellSize + 'px';
+      el.style.height = S.cellSize + 'px';
+      el.style.fontSize = fontSize + 'px';
+      el.style.left = tileLeft(c) + 'px';
+      el.style.top = tileTop(r) + 'px';
+      el.style.zIndex = S.totalRows - r; // lower rows overlap upper tiles' edges
+      if (cell.frozen) el.classList.add('frozen');
+      el.addEventListener('pointerdown', function(e) {
+        S._pressedTile = { row: +this.dataset.row, col: +this.dataset.col };
+      });
+      tileContainer.appendChild(el);
+    }
+  }
+}
+
+function getTileEl(id) {
+  return tileContainer.querySelector(`[data-id="${id}"]`);
+}
+
+function repositionTile(cell, row, col) {
+  const el = getTileEl(cell.id);
+  if (!el) return;
+  el.dataset.row = row;
+  el.dataset.col = col;
+  el.style.top = tileTop(row) + 'px';
+  el.style.left = tileLeft(col) + 'px';
+  el.style.zIndex = el.classList.contains('selected') ? 100 + S.totalRows - row : S.totalRows - row;
+}
+
+// ===== STACK POSITIONING =====
+function positionStack() {
+  const stackH = SPIKE_H + PLANK_H + containerHeight() + PRESS_H;
+  stack.style.transform = `translateY(${stackH - S.visiblePx + S.stackBounceOffset}px)`;
+}
+
+function getSpikeBarTopY() {
+  return S.cageH - S.visiblePx - SPIKE_H;
+}
+
+function getCeilBottom() {
+  return CEIL_SPIKE_H + S.ceilOffset;
+}
+
+function getFreeSpace() {
+  return getSpikeBarTopY() - getCeilBottom();
+}
+
+function getBirdH() {
+  return 192 * S.birdScale;
+}
+
+// ===== BIRD =====
+function updateBird(dt) {
+  const free = getFreeSpace();
+  const bh = getBirdH();
+  const ratio = Math.max(0, Math.min(1, 1 - free / (S.cageH * 0.6)));
+
+  // Track closest call (margin from death = free space minus bird height)
+  const margin = free - bh;
+  if (S.phase === 'playing' && margin < S.closestCall) S.closestCall = margin;
+
+  // Mood (don't flicker during cascades)
+  let mood = 'calm';
+  if (ratio > 0.4) mood = 'worried';
+  if (ratio > 0.7) mood = 'frantic';
+  if (S.birdMood !== mood && !S.cascading) {
+    S.birdMood = mood;
+    birdWrap.className = mood;
+  }
+
+  // Eye tracking — relative to each bird's eye geometry
+  const pupil = $('birdPupil');
+  if (S.eyeBaseCx !== undefined) {
+    const maxD = Math.max(2, (S.eyeWhiteR || 8) - (S.eyePupilR || 5) + 1);
+    if (mood === 'calm') {
+      pupil.setAttribute('cy', S.eyeBaseCy);
+      pupil.setAttribute('cx', S.eyeBaseCx);
+    } else if (mood === 'worried') {
+      pupil.setAttribute('cy', S.eyeBaseCy + maxD * 0.55);
+      pupil.setAttribute('cx', S.eyeBaseCx + maxD * 0.15);
+    } else {
+      pupil.setAttribute('cy', S.eyeBaseCy + maxD * 0.9);
+      pupil.setAttribute('cx', S.eyeBaseCx + maxD * 0.2);
+    }
+  }
+
+  // Size
+  const size = bh;
+  birdSvg.style.width = size + 'px';
+  birdSvg.style.height = size + 'px';
+
+  // Position: wall-to-wall pacing — bird always moves beak-first
+  const maxX = Math.max(10, S.cageW - size - 16);
+  const spikeTop = getSpikeBarTopY();
+  const ceilBot = getCeilBottom();
+  const freeH = Math.max(10, spikeTop - ceilBot - size);
+
+  if (S.birdX === 0) { S.birdX = maxX * 0.3; S.birdDir = -1; }
+  if (S.birdY === 0) { S.birdY = ceilBot + freeH * 0.3; S.birdTargetY = S.birdY; }
+
+  // Horizontal: constant speed toward wall
+  const hSpeed = mood === 'frantic' ? 120 : mood === 'worried' ? 80 : 50;
+  S.birdX += S.birdDir * hSpeed * (dt / 1000);
+
+  // Vertical: drift toward random target
+  const vDiff = S.birdTargetY - S.birdY;
+  S.birdY += Math.sign(vDiff) * Math.min(Math.abs(vDiff), hSpeed * 0.3 * (dt / 1000));
+
+  // Hit wall? Turn around, pick new vertical target
+  if (S.birdX >= maxX) {
+    S.birdX = maxX;
+    S.birdDir = -1;
+    S.birdTargetY = ceilBot + 4 + Math.random() * Math.max(5, freeH * 0.5);
+  } else if (S.birdX <= 4) {
+    S.birdX = 4;
+    S.birdDir = 1;
+    S.birdTargetY = ceilBot + 4 + Math.random() * Math.max(5, freeH * 0.5);
+  }
+
+  // Smooth vertical bounds
+  const maxY = ceilBot + freeH;
+  const minY = ceilBot + 2;
+  if (S.birdY > maxY) S.birdY += (maxY - S.birdY) * 0.15;
+  if (S.birdY < minY) S.birdY += (minY - S.birdY) * 0.15;
+
+  // Bird faces movement direction (beak is left in SVG)
+  const flip = S.birdDir > 0 ? ' scaleX(-1)' : '';
+  birdWrap.style.transform = `translate(${S.birdX}px, ${S.birdY}px)${flip}`;
+}
+
+function birdHop() {
+  birdWrap.className = 'hop';
+  birdWrap.addEventListener('animationend', () => {
+    // Chain exhale after hop
+    birdWrap.className = 'exhale';
+    birdWrap.addEventListener('animationend', () => {
+      birdWrap.className = S.birdMood || 'calm';
+    }, { once: true });
+  }, { once: true });
+}
+
+// ===== DANGER OVERLAY + BACKGROUND ====
+function updateDanger() {
+  const free = getFreeSpace();
+  const bh = getBirdH();
+  const ratio = Math.max(0, Math.min(1, 1 - free / (S.cageH * 0.5)));
+  const overlay = $('dangerOverlay');
+
+  if (ratio > 0.3) {
+    overlay.style.opacity = Math.min(1, (ratio - 0.3) * 2.5);
+    overlay.classList.toggle('pulse', ratio > 0.7);
+  } else {
+    overlay.style.opacity = 0;
+    overlay.classList.remove('pulse');
+  }
+
+  // Background color shift via overlay opacity (preserve radial gradient base)
+  // The dangerOverlay already handles the red tint, so we just darken the cage
+  if (ratio > 0.5) {
+    const t = (ratio - 0.5) * 2;
+    cage.style.filter = `brightness(${1 - t * 0.3}) saturate(${1 - t * 0.4})`;
+  } else {
+    cage.style.filter = '';
+  }
+}
+
+// ===== MATCH DETECTION & SELECTION =====
+function tapTile(row, col) {
+  if (S.phase !== 'playing') return;
+  const cell = S.grid[row]?.[col];
+  if (!cell) return;
+
+  // Start rising on first tap
+  if (!S.rising) {
+    S.rising = true;
+    if (!S.ctaDismissed) {
+      S.ctaDismissed = true;
+      setTimeout(() => $('cta').classList.add('hidden'), 0);
+    }
+  }
+
+  const el = getTileEl(cell.id);
+  if (!el) return;
+
+  // Frozen tile: thaw on first tap
+  if (cell.frozen) {
+    cell.frozen = false;
+    el.classList.remove('frozen');
+    el.classList.add('thawing');
+    spawnIceBreak(el);
+    SFX.iceBreak();
+    setTimeout(() => el.classList.remove('thawing'), 350);
+    return;
+  }
+
+  // Deselect if already selected
+  const si = S.selected.findIndex(s => s.row === row && s.col === col);
+  if (si >= 0) {
+    S.selected.splice(si, 1);
+    el.classList.remove('selected');
+    el.style.zIndex = S.totalRows - row;
+    return;
+  }
+
+  // Check if same icon as current selection
+  if (S.selected.length > 0) {
+    const first = S.selected[0];
+    const firstCell = S.grid[first.row]?.[first.col];
+    if (firstCell && firstCell.icon !== cell.icon) {
+      // Mismatch
+      for (const s of S.selected) {
+        const se = getTileEl(S.grid[s.row]?.[s.col]?.id);
+        if (se) { se.classList.remove('selected'); se.classList.add('mismatch'); se.style.zIndex = S.totalRows - s.row; }
+      }
+      el.classList.add('mismatch');
+      setTimeout(() => {
+        tileContainer.querySelectorAll('.mismatch').forEach(e => e.classList.remove('mismatch'));
+      }, 400);
+      SFX.mismatch();
+      S.selected = [];
+      return;
+    }
+  }
+
+  // Select
+  S.selected.push({ row, col });
+  el.classList.add('selected');
+  el.style.zIndex = 100 + S.totalRows - row;
+  SFX.select(S.selected.length);
+
+  // Check for match (defer if cascade in progress)
+  if (S.selected.length === 3 && !S.cascading) {
+    doMatch();
+  }
+}
+
+function doMatch() {
+  const items = [...S.selected];
+  S.selected = [];
+
+  // Snapshot particle positions BEFORE adding clearing class (avoids scale offset)
+  const particleData = [];
+  for (const s of items) {
+    const cell = S.grid[s.row]?.[s.col];
+    if (!cell) continue;
+    const el = getTileEl(cell.id);
+    if (!el) continue;
+    const rect = el.getBoundingClientRect();
+    particleData.push({ el, icon: cell.icon, rect });
+  }
+
+  // Now add clearing class and spawn particles from snapshot
+  for (const pd of particleData) {
+    pd.el.classList.add('clearing');
+    spawnParticles(pd.rect, pd.icon);
+  }
+
+  SFX.matchClear();
+  navigator.vibrate?.(80);
+
+  // Dismiss CTA
+  if (!S.ctaDismissed) {
+    S.ctaDismissed = true;
+    $('cta').classList.add('hidden');
+  }
+
+  // Remove from grid immediately (animation still plays visually)
+  for (const s of items) {
+    S.grid[s.row][s.col] = null;
+  }
+
+  // Schedule cascade after clearing animation finishes — game loop continues unpaused
+  setTimeout(() => {
+    tileContainer.querySelectorAll('.clearing').forEach(el => el.remove());
+    S.cascading = true;
+    runCascade().then(() => {
+      S.cascading = false;
+      // Fire deferred match if 3 tiles were selected during cascade
+      if (S.selected.length === 3) {
+        doMatch();
+        return;
+      }
+      // Check win
+      if (S.phase === 'playing' && S.grid.every(row => row.every(c => c === null))) {
+        roundComplete();
+      }
+    });
+  }, 500); // matches tilePop animation duration
+}
+
+// ===== PARTICLES =====
+function spawnParticles(rect, icon) {
+  const gameRect = $('game').getBoundingClientRect();
+  const cx = rect.left - gameRect.left + rect.width / 2;
+  // Offset upward to compensate for stack rising during clearing animation
+  const riseOffset = S.rising ? -(ROUND_CFG[S.round].speed * S.speedMul * S.speedScale * 0.25) : 0;
+  const cy = rect.top - gameRect.top + rect.height / 2 + riseOffset;
+  const iconIdx = ICONS.indexOf(icon);
+  const color = ICON_COLORS[iconIdx >= 0 ? iconIdx : 0];
+
+  const baseR = rect.width * 0.18;
+  // Mixed sizes: 3 large hero particles, 2 medium, 3 tiny sparkles
+  const sizes = [
+    11 + Math.random() * 3, 10 + Math.random() * 3, 10 + Math.random() * 3,
+    6 + Math.random() * 3, 6 + Math.random() * 3,
+    3 + Math.random() * 2, 3 + Math.random() * 1.5, 2.5 + Math.random() * 1.5,
+  ];
+  for (let i = 0; i < sizes.length; i++) {
+    const angle = (Math.PI * 2 * i) / sizes.length + (Math.random() - 0.5) * 0.7;
+    const r = baseR * (0.55 + Math.random() * 0.9);
+    const size = sizes[i];
+    const half = size / 2;
+    const dur = 0.3 + Math.random() * 0.2;
+    const delay = Math.random() * 0.04;
+    const p = document.createElement('div');
+    p.className = 'match-particle';
+    p.style.cssText = `left:${cx - half}px;top:${cy - half}px;width:${size}px;height:${size}px;background:radial-gradient(circle,rgba(255,255,255,${size < 5 ? '1' : '0.9'}) 0%,${color} ${size < 5 ? '30' : '50'}%,${color}88 100%);filter:blur(${size < 5 ? 0.5 : 1}px);--px:${Math.cos(angle)*r}px;--py:${Math.sin(angle)*r}px;animation-duration:${dur}s;animation-delay:${delay}s`;
+    $('game').appendChild(p);
+    p.addEventListener('animationend', () => p.remove(), { once: true });
+  }
+}
+
+function screenFlash() {
+  const f = $('screenFlash');
+  f.classList.remove('active');
+  void f.offsetHeight;
+  f.classList.add('active');
+  f.addEventListener('animationend', () => f.classList.remove('active'), { once: true });
+}
+
+// ===== GRAVITY =====
+function applyGravity() {
+  let moved = false;
+  for (let c = 0; c < S.cols; c++) {
+    let writeRow = 0;
+    for (let r = 0; r < S.totalRows; r++) {
+      if (S.grid[r][c] !== null) {
+        if (r !== writeRow) {
+          S.grid[writeRow][c] = S.grid[r][c];
+          S.grid[r][c] = null;
+          moved = true;
+        }
+        writeRow++;
+      }
+    }
+  }
+  return moved;
+}
+
+async function animateGravity(spikeDropPx = 0) {
+  // Snapshot old grid row for each tile BEFORE repositioning.
+  const oldRows = {};
+  tileContainer.querySelectorAll('.tile').forEach(el => {
+    oldRows[el.dataset.id] = +el.dataset.row;
+  });
+
+  // Reposition tiles to their new grid positions
+  for (let r = 0; r < S.totalRows; r++) {
+    for (let c = 0; c < S.cols; c++) {
+      const cell = S.grid[r][c];
+      if (cell) repositionTile(cell, r, c);
+    }
+  }
+
+  // Animate using grid-relative deltas (FLIP technique).
+  let maxDuration = 0;
+  const flips = [];
+  tileContainer.querySelectorAll('.tile').forEach(el => {
+    const prevRow = oldRows[el.dataset.id];
+    if (prevRow === undefined) return;
+    const newRow = +el.dataset.row;
+    const rowDelta = prevRow - newRow;
+    if (rowDelta === 0) return;
+
+    const dy = -(rowDelta) * (S.cellSize + VGAP);
+    const absDelta = Math.abs(rowDelta);
+    const dur = Math.min(250 + (absDelta - 1) * 100, 500);
+    maxDuration = Math.max(maxDuration, dur);
+
+    el.style.transition = 'none';
+    el.style.transform = `translateY(${dy}px)`;
+    el.style.willChange = 'transform';
+    flips.push({ el, dur });
+  });
+  void tileContainer.offsetHeight; // single reflow for all tiles
+  for (const f of flips) {
+    f.el.style.transition = `transform ${f.dur}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+    f.el.style.transform = 'translateY(0)';
+  }
+
+  // Animate spike bar drop in sync with tile gravity — same duration formula as tiles
+  const spikeBarEl = $('spikeBar');
+  if (spikeDropPx > 0) {
+    const spikeBarDur = Math.max(300, Math.min(spikeDropPx / 0.4, 800));
+    maxDuration = Math.max(maxDuration, spikeBarDur);
+    spikeBarEl.style.transition = 'none';
+    spikeBarEl.style.transform = 'translateY(0)';
+    void spikeBarEl.offsetHeight;
+    spikeBarEl.style.transition = `transform ${spikeBarDur}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+    spikeBarEl.style.transform = `translateY(${spikeDropPx}px)`;
+  }
+
+  SFX.tileFall();
+  if (maxDuration > 0) await sleep(maxDuration + 30);
+
+  // Cleanup tiles
+  tileContainer.querySelectorAll('.tile').forEach(el => {
+    el.style.willChange = 'auto';
+    el.style.transition = '';
+    el.style.transform = '';
+  });
+  // Note: spike bar transform is cleaned up in runCascade after collapse
+}
+
+function collapseEmptyRows() {
+  let removed = 0;
+  for (let r = S.totalRows - 1; r >= 0; r--) {
+    if (S.grid[r].every(c => c === null)) {
+      S.grid.splice(r, 1);
+      S.totalRows--;
+      removed++;
+    }
+  }
+  return removed;
+}
+
+async function runCascade() {
+  const spikeBarEl = $('spikeBar');
+  let currentSpikeBarOffset = 0;
+
+  while (true) {
+    const moved = applyGravity();
+
+    if (moved) {
+      // Count empty top rows that will collapse after gravity
+      let emptyTopRows = 0;
+      for (let r = S.totalRows - 1; r >= 0; r--) {
+        if (S.grid[r].every(c => c === null)) emptyTopRows++;
+        else break;
+      }
+      const spikeDropPx = emptyTopRows * (S.cellSize + VGAP);
+
+      await animateGravity(spikeDropPx);
+      currentSpikeBarOffset = spikeDropPx;
+    }
+
+    const removed = collapseEmptyRows();
+    if (removed > 0) {
+      const removedPx = removed * (S.cellSize + VGAP);
+      S.visiblePx -= removedPx;
+
+      // How much visual drop wasn't already animated by gravity
+      const dropPx = removedPx - currentSpikeBarOffset;
+      let dropDur = 0;
+
+      spikeBarEl.style.transition = 'none';
+      if (dropPx > 1) {
+        // FLIP: counteract the instant layout drop, then animate to new position
+        spikeBarEl.style.transform = `translateY(${-dropPx}px)`;
+        void spikeBarEl.offsetHeight;
+        dropDur = Math.max(300, Math.min(dropPx / 0.4, 800));
+        spikeBarEl.style.transition = `transform ${dropDur}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+        spikeBarEl.style.transform = 'translateY(0)';
+      } else {
+        spikeBarEl.style.transform = '';
+      }
+      currentSpikeBarOffset = 0;
+
+      // Reposition tiles — positionStack() compensation keeps everything visually stable
+      tileContainer.style.height = containerHeight() + 'px';
+      for (let r = 0; r < S.totalRows; r++) {
+        for (let c = 0; c < S.cols; c++) {
+          if (S.grid[r][c]) repositionTile(S.grid[r][c], r, c);
+        }
+      }
+
+      SFX.rowCollapse();
+      if (dropDur > 0) await sleep(dropDur + 30);
+      continue;
+    }
+
+    if (!moved && removed === 0) break;
+  }
+
+  // Ensure clean state
+  spikeBarEl.style.transition = '';
+  spikeBarEl.style.transform = '';
+}
+
+// ===== GAME LOOP =====
+function gameLoop(ts) {
+  if (!S.lastTs) S.lastTs = ts;
+  const dt = Math.min(ts - S.lastTs, 50);
+  S.lastTs = ts;
+
+  if (S.phase === 'playing') {
+    // Rise
+    if (S.rising) {
+      const cfg = ROUND_CFG[S.round];
+      let speed = cfg.speed * S.speedMul * S.speedScale;
+
+      // Rubber-banding
+      const free = getFreeSpace();
+      const rowH = S.cellSize + VGAP;
+      if (free < rowH * 1) speed *= 0.5;
+      else if (free < rowH * 2) speed *= 0.7;
+      else if (free > rowH * 4) speed *= 1.18;
+
+      S.visiblePx += speed * (dt / 1000);
+    }
+
+    // Decay plank bounce
+    if (S.stackBounceOffset !== 0) {
+      S.stackBounceOffset *= 0.88;
+      if (Math.abs(S.stackBounceOffset) < 0.5) S.stackBounceOffset = 0;
+    }
+    positionStack();
+
+    // Bird
+    updateBird(dt);
+
+    // Danger
+    updateDanger();
+
+    // Lose check — don't trigger during cascade (tiles are actively resolving)
+    if (getFreeSpace() < getBirdH() * 0.6 && S.rising && !S.cascading) {
+      loseGame();
+    }
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ===== ROUND MANAGEMENT =====
+async function startRound() {
+  S.phase = 'playing';
+  S.rising = S.round > 0; // Round 2+ starts automatically
+  S.cascading = false;
+  S.selected = [];
+  S.birdMood = 'calm';
+  S.lastTs = 0;
+  S.birdMoveTimer = 0;
+  S.birdX = 0;
+  S.birdY = 0;
+  S.birdDir = -1;
+  S.birdTargetY = 0;
+  S.stackBounceOffset = 0;
+  birdSvg.style.transform = '';
+
+  // Set bird SVG for this round
+  const birdIdx = Math.min(S.round, BIRD_SVGS.length - 1);
+  birdSvg.innerHTML = BIRD_SVGS[birdIdx];
+
+  // Cache eye geometry for relative pupil animation
+  const _pupil = $('birdPupil');
+  if (_pupil) {
+    S.eyeBaseCx = +_pupil.getAttribute('cx');
+    S.eyeBaseCy = +_pupil.getAttribute('cy');
+    S.eyePupilR = +_pupil.getAttribute('r');
+    const _eyeW = _pupil.previousElementSibling;
+    if (_eyeW && _eyeW.tagName === 'circle') {
+      S.eyeWhiteR = +_eyeW.getAttribute('r');
+    }
+  }
+
+  $('roundBadge').textContent = `ROUND ${S.round + 1}/${TOTAL_ROUNDS}`;
+  birdWrap.className = 'calm';
+
+  // Restore cage walls (after celebration or win cage-break)
+  $('cageWallL').style.background = '';
+  $('cageWallR').style.background = '';
+  cage.style.filter = '';
+  $('topPlank').style.opacity = '1';
+  $('cageBottom').style.opacity = '1';
+
+  // Visual indicator for speed modifiers
+  const hasSpeedMod = S.modifiers.some(m => m.name === 'Faster Rise');
+  $('spikePlank').style.boxShadow = hasSpeedMod
+    ? 'inset 0 1px 0 rgba(255,210,120,0.25),inset 0 -1px 0 rgba(0,0,0,0.35),0 0 12px rgba(249,115,22,0.6)'
+    : '';
+
+  measure();
+  initSpikes();
+  initGrid();
+  renderTiles();
+
+  // Position ceiling spikes based on Smaller Cage modifier
+  $('ceilingSpikes').style.top = S.ceilOffset + 'px';
+  $('topPress').style.height = S.ceilOffset > 0 ? S.ceilOffset + 'px' : '0';
+
+  // Start with 1.5 rows visible
+  S.visiblePx = S.cellSize * 1.5 + VGAP + SPIKE_H + PLANK_H;
+  positionStack();
+
+  // Start spike glint scheduler
+  startSpikeGlint();
+
+  // CTA visible on round 1
+  if (S.round === 0 && !S.ctaDismissed) {
+    $('cta').classList.remove('hidden');
+    // Auto-dismiss CTA after 3s
+    setTimeout(() => {
+      if (!S.ctaDismissed) {
+        S.ctaDismissed = true;
+        $('cta').classList.add('hidden');
+      }
+    }, 3000);
+  } else {
+    $('cta').classList.add('hidden');
+  }
+
+  updateBird(0);
+  updateDanger();
+}
+
+async function roundComplete() {
+  S.phase = 'roundEnd';
+  S.rising = false;
+
+  // Celebrate round clear: cage sides fall, bird flies out
+  await roundCelebration();
+
+  if (S.round >= TOTAL_ROUNDS - 1) {
+    // Won all rounds!
+    await sleep(200);
+    winGame();
+  } else {
+    // Show wheel
+    await sleep(200);
+    showWheel();
+  }
+}
+
+async function roundCelebration() {
+  const game = $('game');
+
+  // Reset bird eyes to calm (don't look down while flying away)
+  const _p = $('birdPupil');
+  if (_p && S.eyeBaseCx !== undefined) {
+    _p.setAttribute('cx', S.eyeBaseCx);
+    _p.setAttribute('cy', S.eyeBaseCy);
+  }
+
+  // Create falling cage side pieces
+  const leftSide = document.createElement('div');
+  leftSide.className = 'cage-side-fall left';
+  leftSide.style.background = getComputedStyle($('cageWallL')).background || '#8C4A14';
+  const rightSide = document.createElement('div');
+  rightSide.className = 'cage-side-fall right';
+  rightSide.style.background = getComputedStyle($('cageWallR')).background || '#5C2A08';
+  game.appendChild(leftSide);
+  game.appendChild(rightSide);
+
+  // Hide cage walls
+  $('cageWallL').style.background = 'transparent';
+  $('cageWallR').style.background = 'transparent';
+
+  await sleep(100);
+
+  // Cage sides fall away
+  leftSide.classList.add('fallen');
+  rightSide.classList.add('fallen');
+
+  // Bird happiness — set to calm/hop
+  birdWrap.className = 'hop';
+  SFX.rowCollapse();
+
+  await sleep(300);
+
+  // Bird flies out through the side furthest from her
+  const birdCenterX = S.birdX + getBirdH() / 2;
+  const cageCenter = S.cageW / 2;
+  const flyDir = birdCenterX > cageCenter ? -1 : 1; // fly toward far side
+  const targetX = flyDir > 0 ? S.cageW + 120 : -getBirdH() - 120;
+
+  // Face the flight direction: beak is LEFT in SVG
+  // Flying left (flyDir=-1) = beak points left = no flip
+  // Flying right (flyDir=1) = beak points right = scaleX(-1)
+  const flip = flyDir > 0 ? ' scaleX(-1)' : '';
+
+  // First: turn to face exit direction
+  birdWrap.style.transition = 'transform 0.15s ease-out';
+  birdWrap.style.transform = `translate(${S.birdX}px, ${S.birdY}px)${flip}`;
+  await sleep(150);
+
+  // Spawn heart particles ahead of bird flight direction
+  const birdRect = birdWrap.getBoundingClientRect();
+  const gameRect = game.getBoundingClientRect();
+  const heartCx = birdRect.left - gameRect.left + birdRect.width / 2 + flyDir * 40;
+  const heartCy = birdRect.top - gameRect.top + birdRect.height * 0.3;
+  for (let i = 0; i < 6; i++) {
+    const h = document.createElement('div');
+    h.className = 'heart-particle';
+    h.textContent = '\u2764\uFE0F';
+    const angle = (Math.PI * 2 * i) / 6 + (Math.random() - 0.5) * 0.5;
+    h.style.left = heartCx + 'px';
+    h.style.top = heartCy + 'px';
+    h.style.setProperty('--hx', (Math.cos(angle) * 50 + flyDir * 30) + 'px');
+    h.style.setProperty('--hy', (Math.sin(angle) * 40 - 40) + 'px');
+    h.style.animationDelay = (i * 0.08) + 's';
+    game.appendChild(h);
+    h.addEventListener('animationend', () => h.remove(), { once: true });
+  }
+
+  // Fly out on a curve (rises then exits) — slow start, accelerate
+  const midX = S.birdX + flyDir * (S.cageW * 0.3);
+  const midY = Math.max(20, S.birdY - 60); // arc upward
+  birdWrap.style.transition = 'transform 0.9s cubic-bezier(0.4, 0, 1, 1)';
+  birdWrap.style.transform = `translate(${targetX}px, ${midY - 40}px)${flip}`;
+
+  await sleep(950);
+
+  // Cleanup — don't restore cage borders; they stay fallen until next round's startRound()
+  leftSide.remove();
+  rightSide.remove();
+  birdWrap.style.transition = '';
+}
+
+// ===== WHEEL OF FORTUNE =====
+async function showWheel() {
+  S.phase = 'wheel';
+  const segs = S.remainingMods;
+  const segAngle = 360 / segs.length;
+
+  // Build wheel — icons only (no text on segments)
+  const wheel = $('wheel');
+  const stops = segs.map((seg, i) =>
+    `${seg.color} ${i * segAngle}deg ${(i + 1) * segAngle}deg`
+  ).join(', ');
+  wheel.style.background = `conic-gradient(${stops})`;
+  wheel.innerHTML = '';
+  const wheelSize = Math.min(240, parseInt(getComputedStyle($('wheelWrap')).width) || 240);
+  const radius = wheelSize / 2 * 0.6;
+  segs.forEach((seg, i) => {
+    const icon = document.createElement('div');
+    icon.className = 'wheel-icon';
+    icon.textContent = seg.icon;
+    const angle = i * segAngle + segAngle / 2;
+    const rad = angle * Math.PI / 180;
+    const x = Math.sin(rad) * radius;
+    const y = -Math.cos(rad) * radius;
+    // Rotate icon so it reads upright when its segment is at top (pointer position)
+    icon.style.transform = `translate(${x - 20}px, ${y - 20}px) rotate(${angle}deg)`;
+    wheel.appendChild(icon);
+  });
+
+  // Reset UI
+  wheel.style.transition = 'none';
+  wheel.style.transform = 'rotate(0deg)';
+  void wheel.offsetHeight;
+  $('wheelResultName').classList.remove('show');
+  $('wheelResultDesc').classList.remove('show');
+  $('wheelBtns').classList.remove('show');
+
+  // Show overlay
+  $('wheelOverlay').classList.add('active');
+  await sleep(600);
+
+  // Pick result
+  const resultIdx = Math.floor(Math.random() * segs.length);
+  const result = segs[resultIdx];
+  S._wheelResult = result; // store for button callbacks
+
+  // Calculate rotation
+  const targetCenter = resultIdx * segAngle + segAngle / 2;
+  const fullSpins = (4 + Math.floor(Math.random() * 3)) * 360;
+  const jitter = (Math.random() - 0.5) * segAngle * 0.4;
+  const totalRotation = fullSpins + (360 - targetCenter) + jitter;
+
+  // Spin
+  wheel.style.transition = 'transform 3.5s cubic-bezier(0.15, 0.85, 0.25, 1)';
+  wheel.style.transform = `rotate(${totalRotation}deg)`;
+  await sleep(3700);
+
+  // Show result name (no description — names are self-explanatory)
+  SFX.wheelLand();
+  $('wheelResultName').textContent = `${result.icon} ${result.name}`;
+  $('wheelResultName').style.color = result.color;
+  $('wheelResultName').classList.add('show');
+
+  // Apply modifier immediately
+  result.apply(S);
+  S.modifiers.push(result);
+  S.remainingMods = S.remainingMods.filter(m => m !== result);
+  renderModBadges();
+
+  // Show confirmation buttons
+  await sleep(400);
+  $('wheelBtns').classList.add('show');
+  // Player must click Continue or Start Over
+}
+
+function renderModBadges() {
+  const container = $('modBadges');
+  container.innerHTML = '';
+  S.modifiers.forEach(mod => {
+    const badge = document.createElement('div');
+    badge.className = 'mod-badge';
+    badge.textContent = mod.icon;
+    badge.style.borderColor = mod.border;
+    badge.title = mod.name;
+    container.appendChild(badge);
+  });
+}
+
+// ===== WIN / LOSE =====
+function winGame() {
+  S.phase = 'win';
+  birdWrap.className = 'calm';
+
+  // Cage break effect: spawn bar fragments
+  spawnCageBreak();
+  setTimeout(() => spawnConfetti(60, true), 300);
+
+  $('winSub').textContent = S.modifiers.length > 0
+    ? `You beat: ${S.modifiers.map(m => m.name).join(' + ')}`
+    : `You cleared all ${TOTAL_ROUNDS} rounds!`;
+  setTimeout(() => $('winOverlay').classList.add('active'), 700);
+  SFX.win();
+}
+
+function spawnCageBreak() {
+  const game = $('game');
+  const colors = ['#8B6914', '#5C4033', '#6B3A1F', '#8B5E3C'];
+  for (let i = 0; i < 16; i++) {
+    const frag = document.createElement('div');
+    const w = 6 + Math.random() * 12;
+    const h = 20 + Math.random() * 40;
+    const side = i < 8 ? 0 : game.offsetWidth - w;
+    const y = (i % 8) * (game.offsetHeight / 8);
+    const dx = (i < 8 ? -1 : 1) * (40 + Math.random() * 80);
+    const dy = -20 + Math.random() * 40;
+    const rot = (Math.random() - 0.5) * 360;
+    frag.style.cssText = `position:absolute;left:${side}px;top:${y}px;width:${w}px;height:${h}px;background:${colors[i%4]};z-index:101;border-radius:2px;pointer-events:none`;
+    frag.style.transition = 'all 0.5s cubic-bezier(0.22, 0.61, 0.36, 1)';
+    game.appendChild(frag);
+    requestAnimationFrame(() => {
+      frag.style.transform = `translate(${dx}px, ${dy}px) rotate(${rot}deg)`;
+      frag.style.opacity = '0';
+    });
+    setTimeout(() => frag.remove(), 600);
+  }
+  // Hide cage walls briefly
+  $('cageWallL').style.background = 'transparent';
+  $('cageWallR').style.background = 'transparent';
+  $('topPlank').style.opacity = '0';
+  $('cageBottom').style.opacity = '0';
+}
+
+function loseGame() {
+  S.phase = 'lose';
+  S.rising = false;
+
+  // Freeze the scene — bird stays in current state, no squish
+  navigator.vibrate?.([100, 50, 100, 50, 200]);
+  SFX.lose();
+
+  // 1 second dramatic pause, then show loss screen
+  $('loseSub').textContent = `Round ${S.round + 1} of ${TOTAL_ROUNDS}`;
+  setTimeout(() => $('loseOverlay').classList.add('active'), 1000);
+}
+
+function spawnConfetti(count, useFruit) {
+  const game = $('game');
+  const colors = ['#EF4444','#FACC15','#22C55E','#3B82F6','#A855F7','#EC4899'];
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti';
+    if (useFruit && Math.random() > 0.5) {
+      p.textContent = ICONS[Math.floor(Math.random() * 7)];
+      p.style.fontSize = '14px';
+      p.style.background = 'none';
+    } else {
+      const size = 4 + Math.random() * 6;
+      p.style.width = size + 'px';
+      p.style.height = size + 'px';
+      p.style.background = colors[Math.floor(Math.random() * colors.length)];
+      p.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    }
+    p.style.left = Math.random() * 100 + '%';
+    p.style.top = '-10px';
+    p.style.setProperty('--fall', (300 + Math.random() * 300) + 'px');
+    p.style.setProperty('--spin', (360 + Math.random() * 720) + 'deg');
+    p.style.setProperty('--dur', (1.5 + Math.random() * 1.5) + 's');
+    p.style.setProperty('--delay', (Math.random() * 0.6) + 's');
+    game.appendChild(p);
+    p.addEventListener('animationend', () => p.remove(), { once: true });
+  }
+}
+
+// ===== AUDIO =====
+// Natural-sounding synthesis using sine waves with bell-like partials.
+// To replace with real samples: embed base64 MP3 strings and use _playSample().
+// Recommended CC0 sources: Freesound.org IDs 734249, 449955, 60007, 419492, 456965
+const SFX = {
+  ctx: null,
+  master: null,
+  reverb: null,
+  _unlocked: false,
+
+  init() {
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.master = this.ctx.createGain();
+    this.master.gain.value = 0.45;
+    // Small reverb via convolver for natural feel
+    this.dry = this.ctx.createGain();
+    this.wet = this.ctx.createGain();
+    this.dry.gain.value = 0.8;
+    this.wet.gain.value = 0.2;
+    this._createReverb();
+    this.dry.connect(this.ctx.destination);
+    this.wet.connect(this.ctx.destination);
+    this.master.connect(this.dry);
+  },
+
+  _createReverb() {
+    // Simple impulse response for short room reverb
+    const len = Math.ceil(this.ctx.sampleRate * 0.3);
+    const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 0.08));
+    }
+    this.reverb = this.ctx.createConvolver();
+    this.reverb.buffer = buf;
+    this.master.connect(this.reverb);
+    this.reverb.connect(this.wet);
+  },
+
+  unlock() {
+    if (this._unlocked) return;
+    if (!this.ctx) this.init();
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+    const buf = this.ctx.createBuffer(1, 1, this.ctx.sampleRate);
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(this.ctx.destination);
+    src.start(0);
+    this._unlocked = true;
+  },
+
+  // Bell-like tone with inharmonic partials (sounds natural, not arcade)
+  _bell(freq, start, dur, vol = 0.12) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime + start;
+    const partials = [1.0, 2.76, 5.4, 8.93];
+    const gains = [1.0, 0.4, 0.15, 0.06];
+    partials.forEach((ratio, i) => {
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = freq * ratio;
+      // Slight detune for warmth
+      o.detune.value = (Math.random() - 0.5) * 6;
+      g.gain.setValueAtTime(vol * gains[i], t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur * (1 - i * 0.15));
+      o.connect(g);
+      g.connect(this.master);
+      o.start(t);
+      o.stop(t + dur + 0.05);
+    });
+  },
+
+  // Soft chime — single sine with gentle attack
+  _chime(freq, start, dur, vol = 0.1) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime + start;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    o.detune.value = (Math.random() - 0.5) * 4;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g);
+    g.connect(this.master);
+    o.start(t);
+    o.stop(t + dur + 0.05);
+  },
+
+  // Filtered noise burst
+  _noise(start, dur, vol = 0.06, freq = 800, q = 3) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime + start;
+    const buf = this.ctx.createBuffer(1, Math.ceil(this.ctx.sampleRate * dur), this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    const f = this.ctx.createBiquadFilter();
+    f.type = 'bandpass';
+    f.frequency.value = freq;
+    f.Q.value = q;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    src.connect(f);
+    f.connect(g);
+    g.connect(this.master);
+    src.start(t);
+    src.stop(t + dur + 0.01);
+  },
+
+  // Ice break — crisp high shatter
+  iceBreak() {
+    this._noise(0, 0.08, 0.06, 4000, 2);
+    this._chime(1200, 0.01, 0.12, 0.08);
+    this._chime(2400, 0.03, 0.08, 0.04);
+  },
+
+  // Tile select — escalating C5 → E5 → G5 soft chimes
+  select(nth) {
+    const freqs = [523.3, 659.3, 784.0];
+    this._chime(freqs[Math.min(nth - 1, 2)], 0, 0.15, 0.1);
+  },
+
+  // Mismatch — two dissonant soft tones
+  mismatch() {
+    this._chime(466.2, 0, 0.12, 0.08);
+    this._chime(440.0, 0.05, 0.12, 0.08);
+    this._noise(0, 0.06, 0.03, 600, 2);
+  },
+
+  // Match clear — satisfying bell chime + sparkle noise
+  matchClear() {
+    this._bell(784, 0, 0.5, 0.12);
+    this._chime(1046.5, 0.04, 0.3, 0.08);
+    this._chime(1318.5, 0.08, 0.25, 0.05);
+    this._noise(0.02, 0.12, 0.04, 6000, 1.5);
+  },
+
+  // Tile fall — soft thud
+  tileFall() {
+    this._noise(0, 0.05, 0.04, 300, 3);
+  },
+
+  // Row collapse — deep resonant thud + ascending relief chime
+  rowCollapse() {
+    if (!this.ctx) return;
+    // Deep thud (pitch sweep down)
+    const t = this.ctx.currentTime;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(200, t);
+    o.frequency.exponentialRampToValueAtTime(50, t + 0.35);
+    g.gain.setValueAtTime(0.12, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    o.connect(g);
+    g.connect(this.master);
+    o.start(t);
+    o.stop(t + 0.45);
+    // Ascending relief bells
+    this._bell(392, 0.1, 0.4, 0.08);
+    this._bell(523.3, 0.2, 0.45, 0.1);
+    this._bell(659.3, 0.3, 0.5, 0.12);
+  },
+
+  // Wheel land — triumphant reveal chord (major triad bell)
+  wheelLand() {
+    this._bell(523.3, 0, 0.6, 0.12);
+    this._bell(659.3, 0.02, 0.55, 0.1);
+    this._bell(784.0, 0.04, 0.5, 0.12);
+    this._noise(0, 0.15, 0.03, 5000, 1.5);
+  },
+
+  // Win — ascending major scale with overlapping bell tones + sparkle
+  win() {
+    const notes = [392, 440, 523.3, 587.3, 659.3, 784, 1046.5];
+    notes.forEach((f, i) => {
+      this._bell(f, i * 0.09, 0.6 + i * 0.05, 0.08 + i * 0.01);
+    });
+    // Final sustained major chord
+    this._bell(523.3, 0.7, 1.2, 0.1);
+    this._bell(659.3, 0.72, 1.15, 0.08);
+    this._bell(784.0, 0.74, 1.1, 0.1);
+    this._noise(0.3, 0.15, 0.04, 5000, 1.5);
+    this._noise(0.6, 0.12, 0.04, 6000, 1.5);
+  },
+
+  // Lose — descending notes with piano-like decay, minor quality
+  lose() {
+    const notes = [523.3, 493.9, 440.0, 392.0];
+    notes.forEach((f, i) => {
+      this._bell(f, i * 0.22, 0.5, 0.1);
+    });
+    // Low rumble
+    this._noise(0.5, 0.5, 0.06, 120, 2);
+  },
+};
+
+// ===== ROUND SPLASH =====
+async function showRoundSplash(roundNum) {
+  const el = document.createElement('div');
+  el.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:100;pointer-events:none';
+  el.innerHTML = `<div style="font-family:'Fredoka',system-ui,sans-serif;font-size:48px;font-weight:600;color:#fff;letter-spacing:0.04em;text-shadow:0 2px 4px rgba(20,8,0,0.95),0 0 20px rgba(255,200,80,0.35);transform:scale(0);animation:pop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards">ROUND ${roundNum}</div>`;
+  $('game').appendChild(el);
+  await sleep(800);
+  el.style.transition = 'opacity 0.3s';
+  el.style.opacity = '0';
+  await sleep(300);
+  el.remove();
+}
+
+// ===== GAME CONTROLLER =====
+const G = {
+  init() {
+    SFX.init();
+    document.addEventListener('touchstart', () => SFX.unlock(), { once: true });
+    document.addEventListener('click', () => SFX.unlock(), { once: true });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && SFX.ctx) SFX.ctx.suspend();
+      else if (SFX.ctx) SFX.ctx.resume();
+    });
+
+    // Tile selection on pointer release (prevents accidental cancellation from finger drift)
+    cage.addEventListener('pointerup', () => {
+      if (S._pressedTile) {
+        const { row, col } = S._pressedTile;
+        S._pressedTile = null;
+        tapTile(row, col);
+      }
+    });
+    document.addEventListener('pointerup', () => { S._pressedTile = null; });
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) S.lastTs = 0;
+    });
+
+    window.addEventListener('resize', () => {
+      measure();
+      if (S.phase === 'playing') {
+        initSpikes();
+        positionStack();
+      }
+    });
+
+    S.remainingMods = [...MODIFIERS];
+    S.round = 0;
+    S.modifiers = [];
+    S.closestCall = Infinity;
+    S.birdScale = 1;
+    S.ceilOffset = 0;
+    S.extraTypes = 0;
+    S.speedMul = 1;
+    S.tileScale = 1;
+    S.tinyTiles = false;
+    S.frozenTiles = false;
+    S.ctaDismissed = false;
+    S.nextTileId = 0;
+
+    measure();
+    startRound();
+    requestAnimationFrame(gameLoop);
+  },
+
+  async wheelContinue() {
+    // Fade to black
+    const trans = $('roundTransition');
+    trans.classList.remove('fade-out');
+    trans.classList.add('fade-in');
+    await sleep(400);
+    // Hide wheel while blacked out
+    $('wheelOverlay').classList.remove('active');
+    S.round++;
+    startRound();
+    await sleep(100);
+    // Fade back in
+    trans.classList.remove('fade-in');
+    trans.classList.add('fade-out');
+    await sleep(400);
+    trans.classList.remove('fade-out');
+    // Show round splash on top
+    await showRoundSplash(S.round + 1);
+  },
+
+  wheelRestart() {
+    $('wheelOverlay').classList.remove('active');
+    // Undo the modifier that was just applied
+    const result = S._wheelResult;
+    if (result) {
+      S.modifiers.pop();
+      // Modifier effects are cumulative on state, so full restart is cleaner
+    }
+    this.restart();
+  },
+
+  restart() {
+    $('winOverlay').classList.remove('active');
+    $('loseOverlay').classList.remove('active');
+    $('wheelOverlay').classList.remove('active');
+
+    S.round = 0;
+    S.modifiers = [];
+    S.remainingMods = [...MODIFIERS];
+    S.closestCall = Infinity;
+    S.birdScale = 1;
+    S.ceilOffset = 0;
+    S.extraTypes = 0;
+    S.speedMul = 1;
+    S.tileScale = 1;
+    S.tinyTiles = false;
+    S.frozenTiles = false;
+    S.ctaDismissed = false;
+    S.nextTileId = 0;
+    S.lastTs = 0;
+
+    // Reset ceiling spike position and top press
+    $('ceilingSpikes').style.top = '0';
+    $('topPress').style.height = '0';
+
+    $('modBadges').innerHTML = '';
+
+    measure();
+    startRound();
+  },
+};
+
+// ===== DEBUG =====
+function debugApplyMod(idx) {
+  if (S.phase !== 'playing') return;
+  const mod = MODIFIERS[idx];
+  if (!mod) return;
+  mod.apply(S);
+  S.modifiers.push(mod);
+  renderModBadges();
+  // Mods that change tile grid need re-init
+  if (mod.name === 'Tiny Tiles' || mod.name === 'More Fruits' || mod.name === 'Ice Tiles') {
+    measure();
+    initGrid();
+    renderTiles();
+    S.visiblePx = S.cellSize * 1.5 + VGAP + SPIKE_H + PLANK_H;
+    positionStack();
+  }
+  // Smaller Cage moves ceiling spikes down
+  if (mod.name === 'Lower Ceiling') {
+    $('ceilingSpikes').style.top = S.ceilOffset + 'px';
+    $('topPress').style.height = S.ceilOffset + 'px';
+  }
+}
+
+function debugWinRound() {
+  if (S.phase !== 'playing') return;
+  S.grid = S.grid.map(r => r.map(() => null));
+  tileContainer.innerHTML = '';
+  S.totalRows = 0;
+  tileContainer.style.height = '0px';
+  roundComplete();
+}
+
+// ===== BOOTSTRAP =====
+window.addEventListener('load', () => G.init());
+</script>
+</body>
+</html>
