@@ -31,9 +31,9 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 
 /* ---- CEILING SPIKES ---- */
 #ceilingSpikes{position:absolute;top:0;left:0;right:0;display:flex;z-index:3;transition:top 0.5s ease-out}
-.spike-down{width:0;height:0;border-left:var(--shw,11px) solid transparent;border-right:var(--shw,11px) solid transparent;border-top:72px solid;border-top-color:#A8C0D0;flex-shrink:0;position:relative;filter:drop-shadow(0 4px 5px rgba(0,10,25,0.6)) drop-shadow(-1px 0 0 rgba(200,225,245,0.5)) drop-shadow(2px 1px 2px rgba(15,35,55,0.5))}
-.spike-down::before{content:'';position:absolute;top:-72px;left:calc(-1 * var(--shw,11px));width:calc(2 * var(--shw,11px));height:72px;background:linear-gradient(115deg,rgba(255,255,255,0.35) 0%,rgba(255,255,255,0.08) 25%,transparent 48%,rgba(0,15,35,0.12) 70%,rgba(0,15,35,0.22) 100%);clip-path:polygon(0 0,100% 0,50% 100%);pointer-events:none}
-.spike-down::after{content:'';position:absolute;top:-72px;left:calc(-1 * var(--shw,11px));width:calc(2 * var(--shw,11px));height:72px;background:linear-gradient(100deg,transparent 38%,rgba(255,255,255,0.18) 46%,rgba(255,255,255,0.25) 50%,rgba(255,255,255,0.18) 54%,transparent 62%);clip-path:polygon(0 0,100% 0,50% 100%);pointer-events:none}
+.spike-down{width:0;height:0;border-left:var(--shw,11px) solid transparent;border-right:var(--shw,11px) solid transparent;border-top:var(--ssh,50px) solid;border-top-color:#A8C0D0;flex-shrink:0;position:relative;filter:drop-shadow(0 4px 5px rgba(0,10,25,0.6)) drop-shadow(-1px 0 0 rgba(200,225,245,0.5)) drop-shadow(2px 1px 2px rgba(15,35,55,0.5))}
+.spike-down::before{content:'';position:absolute;top:calc(-1 * var(--ssh,50px));left:calc(-1 * var(--shw,11px));width:calc(2 * var(--shw,11px));height:var(--ssh,50px);background:linear-gradient(115deg,rgba(255,255,255,0.35) 0%,rgba(255,255,255,0.08) 25%,transparent 48%,rgba(0,15,35,0.12) 70%,rgba(0,15,35,0.22) 100%);clip-path:polygon(0 0,100% 0,50% 100%);pointer-events:none}
+.spike-down::after{content:'';position:absolute;top:calc(-1 * var(--ssh,50px));left:calc(-1 * var(--shw,11px));width:calc(2 * var(--shw,11px));height:var(--ssh,50px);background:linear-gradient(100deg,transparent 38%,rgba(255,255,255,0.18) 46%,rgba(255,255,255,0.25) 50%,rgba(255,255,255,0.18) 54%,transparent 62%);clip-path:polygon(0 0,100% 0,50% 100%);pointer-events:none}
 /* ---- SPIKE TIP GLINT (individual random flashes) ---- */
 #ceilingSpikes{overflow:visible}
 .spike-tip-glint{position:absolute;width:20px;height:20px;pointer-events:none;z-index:10;animation:tipFlash 0.22s ease-out forwards;filter:drop-shadow(0 0 3px rgba(200,230,255,0.9)) drop-shadow(0 0 6px rgba(180,220,255,0.5))}
@@ -43,7 +43,7 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 @keyframes tipFlash{0%{opacity:0;transform:translate(-50%,-50%) scale(0.2) rotate(0deg)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.4) rotate(8deg)}100%{opacity:0;transform:translate(-50%,-50%) scale(0.3) rotate(20deg)}}
 
 /* ---- DANGER OVERLAY ---- */
-#dangerOverlay{position:absolute;inset:0;pointer-events:none;z-index:6;opacity:0;transition:opacity 0.3s;background:radial-gradient(ellipse at center,transparent 40%,rgba(239,68,68,0.3) 100%)}
+#dangerOverlay{position:absolute;inset:0;pointer-events:none;z-index:6;opacity:0;transition:opacity 0.3s;background:radial-gradient(ellipse at center 65%,transparent 35%,rgba(180,20,20,0.55) 65%,rgba(100,0,0,0.85) 90%)}
 #dangerOverlay.pulse{animation:dangerPulse 0.8s ease-in-out infinite}
 @keyframes dangerPulse{0%,100%{opacity:0.7}50%{opacity:1}}
 
@@ -74,10 +74,10 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 #stack{position:absolute;left:0;right:0;bottom:0;z-index:5;will-change:transform}
 #spikeBar{position:relative;z-index:2}
 #spikePlank{height:8px;background:linear-gradient(180deg,#B8722E 0%,#8C4A14 50%,#5C2A08 100%);box-shadow:inset 0 1px 0 rgba(255,210,120,0.25),inset 0 -1px 0 rgba(0,0,0,0.35)}
-#spikeBarUp{display:flex;position:absolute;top:-66px;left:0;right:0}
-.sb-up{width:0;height:0;border-left:var(--shw,11px) solid transparent;border-right:var(--shw,11px) solid transparent;border-bottom:66px solid #A8C0D0;flex-shrink:0;position:relative;filter:drop-shadow(0 -4px 5px rgba(0,10,25,0.6)) drop-shadow(-1px 0 0 rgba(200,225,245,0.5)) drop-shadow(2px -1px 2px rgba(15,35,55,0.5))}
-.sb-up::before{content:'';position:absolute;top:0;left:calc(-1 * var(--shw,11px));width:calc(2 * var(--shw,11px));height:66px;background:linear-gradient(115deg,rgba(255,255,255,0.35) 0%,rgba(255,255,255,0.08) 25%,transparent 48%,rgba(0,15,35,0.12) 70%,rgba(0,15,35,0.22) 100%);clip-path:polygon(50% 0,0 100%,100% 100%);pointer-events:none}
-.sb-up::after{content:'';position:absolute;top:0;left:calc(-1 * var(--shw,11px));width:calc(2 * var(--shw,11px));height:66px;background:linear-gradient(100deg,transparent 38%,rgba(255,255,255,0.18) 46%,rgba(255,255,255,0.25) 50%,rgba(255,255,255,0.18) 54%,transparent 62%);clip-path:polygon(50% 0,0 100%,100% 100%);pointer-events:none}
+#spikeBarUp{display:flex;position:absolute;top:calc(-1 * var(--ssh,50px));left:0;right:0}
+.sb-up{width:0;height:0;border-left:var(--shw,11px) solid transparent;border-right:var(--shw,11px) solid transparent;border-bottom:var(--ssh,50px) solid #A8C0D0;flex-shrink:0;position:relative;filter:drop-shadow(0 -4px 5px rgba(0,10,25,0.6)) drop-shadow(-1px 0 0 rgba(200,225,245,0.5)) drop-shadow(2px -1px 2px rgba(15,35,55,0.5))}
+.sb-up::before{content:'';position:absolute;top:0;left:calc(-1 * var(--shw,11px));width:calc(2 * var(--shw,11px));height:var(--ssh,50px);background:linear-gradient(115deg,rgba(255,255,255,0.35) 0%,rgba(255,255,255,0.08) 25%,transparent 48%,rgba(0,15,35,0.12) 70%,rgba(0,15,35,0.22) 100%);clip-path:polygon(50% 0,0 100%,100% 100%);pointer-events:none}
+.sb-up::after{content:'';position:absolute;top:0;left:calc(-1 * var(--shw,11px));width:calc(2 * var(--shw,11px));height:var(--ssh,50px);background:linear-gradient(100deg,transparent 38%,rgba(255,255,255,0.18) 46%,rgba(255,255,255,0.25) 50%,rgba(255,255,255,0.18) 54%,transparent 62%);clip-path:polygon(50% 0,0 100%,100% 100%);pointer-events:none}
 #tileContainer{position:relative}
 
 /* ---- HYDRAULIC PRESS ---- */
@@ -172,21 +172,36 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 /* ---- WHEEL ---- */
 #wheelOverlay .overlay-bg{background:rgba(0,0,0,0.8)}
 #wheelOverlay .overlay-content{max-width:360px;padding:20px;display:flex;flex-direction:column;align-items:center;height:min(520px,85vh)}
-#wheelTitle{font-size:18px;font-weight:800;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,0.5);margin-bottom:min(20px,2.5vh);letter-spacing:0.5px;flex-shrink:0}
+#wheelTitle{font-size:20px;font-weight:800;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,0.5);margin-bottom:min(20px,2.5vh);letter-spacing:0.5px;flex-shrink:0}
 #wheelWrap{position:relative;width:min(240px,62vw);height:min(240px,62vw);margin:0 auto min(20px,2.5vh);flex-shrink:0}
 #wheel{width:100%;height:100%;border-radius:50%;border:5px solid rgba(255,255,255,0.25);will-change:transform;box-shadow:0 0 20px rgba(0,0,0,0.3),inset 0 0 10px rgba(0,0,0,0.15)}
 #wheelPointer{position:absolute;top:-14px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:28px solid #FACC15;z-index:2;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4))}
 .wheel-icon{position:absolute;top:50%;left:50%;pointer-events:none;font-size:28px;line-height:1;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.85);border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3)}
 #wheelResult{text-align:center;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%}
-#wheelResultName{font-size:24px;font-weight:800;color:#FACC15;margin-bottom:8px;opacity:0;transform:translateY(20px);transition:all 0.3s ease-out}
+#wheelResultName{font-size:26px;font-weight:800;color:#FACC15;margin-bottom:8px;opacity:0;transform:translateY(20px);transition:all 0.3s ease-out}
 #wheelResultDesc{font-size:15px;color:rgba(255,255,255,0.75);margin-bottom:16px;opacity:0;transition:opacity 0.3s ease-out 0.15s;display:none}
 #wheelResultName.show,#wheelResultDesc.show{opacity:1;transform:translateY(0)}
 #wheelBtns{display:flex;gap:10px;justify-content:center;opacity:0;transition:opacity 0.3s ease-out 0.3s;flex-shrink:0}
 #wheelBtns.show{opacity:1}
-.btn-sm{padding:12px 28px;border-radius:22px;font-size:14px;font-weight:700;font-family:inherit;border:none;cursor:pointer;transition:transform 0.12s;min-width:120px}
+.btn-sm{padding:13px 30px;border-radius:22px;font-size:15px;font-weight:700;font-family:inherit;border:none;cursor:pointer;transition:transform 0.12s;min-width:120px}
 .btn-sm:active{transform:scale(0.95)}
 .btn-continue{background:linear-gradient(135deg,#4ADE80,#22C55E);color:#fff;box-shadow:0 3px 10px rgba(34,197,94,0.4)}
 .btn-restart{background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.2)}
+
+/* === WIN SCREEN === */
+#winOverlay .overlay-content{max-width:400px;padding:0 16px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.win-birds{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:12px 16px;margin-bottom:24px;padding:20px 0;max-width:256px;animation:pop 0.5s cubic-bezier(0.34,1.56,0.64,1)}
+#winOverlay .overlay-title{font-size:clamp(28px,8vw,36px);line-height:1.15;margin-bottom:4px;letter-spacing:0.5px}
+.win-title-sub{font-size:clamp(22px,6vw,28px);font-weight:800;line-height:1.15;margin-bottom:16px;letter-spacing:0.5px;color:#4ADE80;text-shadow:0 2px 8px rgba(0,0,0,0.4)}
+#winOverlay .overlay-sub{font-size:14px;color:rgba(255,255,255,0.85);margin-bottom:16px;line-height:1.5;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:280px}
+.modifier-pill{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);border-radius:20px;padding:4px 12px;font-size:13px;color:rgba(255,255,255,0.9);white-space:nowrap}
+#winOverlay .btn{padding:16px 48px;font-size:18px;border-radius:28px;min-width:220px;margin-top:20px}
+
+/* === LOSE SCREEN === */
+#loseOverlay .overlay-content{max-width:380px;padding:0 20px}
+#loseOverlay .overlay-emoji{font-size:80px;margin-bottom:20px}
+#loseOverlay .overlay-title{font-size:36px;margin-bottom:14px}
+#loseOverlay .overlay-sub{font-size:17px;color:rgba(255,255,255,0.8);margin-bottom:28px}
 
 /* ---- ROUND TRANSITION ---- */
 #roundTransition{position:absolute;inset:0;z-index:150;pointer-events:none;background:#0a1a0a;opacity:0;transition:opacity 0.4s ease-in-out}
@@ -339,8 +354,9 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
   <div class="overlay" id="winOverlay">
     <div class="overlay-bg" style="background:rgba(0,40,0,0.8)"></div>
     <div class="overlay-content">
-      <div class="overlay-emoji" id="winEmoji">&#x1F426;</div>
-      <div class="overlay-title" style="color:#4ADE80" id="winTitle">BIRD SAVED!</div>
+      <div class="win-birds" id="winEmoji"></div>
+      <div class="overlay-title" style="color:#4ADE80" id="winTitle">ALL THE BIRDS</div>
+      <div class="win-title-sub">ARE SAFE!</div>
       <div class="overlay-sub" id="winSub">You cleared all 5 rounds!</div>
       <button class="btn" onclick="G.restart()">PLAY AGAIN</button>
     </div>
@@ -365,11 +381,11 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
     <button onclick="if(S.phase==='playing')loseGame()" style="font-size:10px;padding:3px 7px;opacity:0.7;border-radius:4px;border:1px solid #e44;background:rgba(40,0,0,0.6);color:#f88">LOSE</button>
     <button onclick="debugWinRound()" style="font-size:10px;padding:3px 7px;opacity:0.7;border-radius:4px;border:1px solid #4ade80;background:rgba(0,40,0,0.6);color:#4ade80">WIN</button>
     <button onclick="debugApplyMod(0)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #e44;background:rgba(80,0,0,0.5);color:#fff" title="Giant Bird">&#x1F426;</button>
-    <button onclick="debugApplyMod(1)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #68f;background:rgba(0,0,80,0.5);color:#fff" title="Lower Ceiling">&#x1F5DC;</button>
+    <button onclick="debugApplyMod(1)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #8B5CF6;background:rgba(50,0,80,0.5);color:#fff" title="Lower Ceiling">&#x1F5DC;</button>
     <button onclick="debugApplyMod(2)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #a5f;background:rgba(50,0,80,0.5);color:#fff" title="More Fruits">&#x1F3B2;</button>
     <button onclick="debugApplyMod(3)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #38bdf8;background:rgba(0,40,80,0.5);color:#fff" title="Ice Tiles">&#x2744;&#xFE0F;</button>
     <button onclick="debugApplyMod(4)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #fc0;background:rgba(80,60,0,0.5);color:#fff" title="Faster Rise">&#x23F1;&#xFE0F;</button>
-    <button onclick="debugApplyMod(5)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #e4a;background:rgba(80,0,40,0.5);color:#fff" title="Tiny Tiles">&#x1F50D;</button>
+    <button onclick="debugApplyMod(5)" style="font-size:12px;padding:3px 6px;opacity:0.7;border-radius:4px;border:2px solid #34D399;background:rgba(0,60,40,0.5);color:#fff" title="Tiny Tiles">&#x1F50D;</button>
   </div>
 </div>
 
@@ -379,10 +395,9 @@ const ICONS = ['\u{1F34E}','\u{1F347}','\u{1F95D}','\u{1F34C}','\u{1F965}','\u{1
 const ICON_COLORS = ['#EF4444','#8B5CF6','#22C55E','#FACC15','#F5F0E0','#FBBD8B','#F97316','#EC4899','#DC2626','#22C55E','#EAB308','#F59E0B'];
 const HGAP = 1;
 const VGAP = 3;
-const SPIKE_H = 66;
 const PLANK_H = 8;
-const CEIL_SPIKE_H = 72;
 const PRESS_H = 5042; // pressHead(28) + pressPiston(3000) + pressBase(2014)
+const DEATH_GAP = 0.65; // free space < bh * DEATH_GAP → lose (spikes close but don't touch body)
 
 const ROUND_CFG = [
   { rows: 9, types: 6, speed: 14, seed: true },
@@ -395,11 +410,11 @@ const TOTAL_ROUNDS = ROUND_CFG.length;
 
 const MODIFIERS = [
   { name: 'Giant Bird',     icon: '\u{1F426}', color: '#EF4444', border: '#EF4444', apply: s => { s.birdScale *= 1.5 } },
-  { name: 'Lower Ceiling',  icon: '\u{1F5DC}', color: '#60A5FA', border: '#60A5FA', apply: s => { s.ceilOffset += 80 } },
+  { name: 'Lower Ceiling',  icon: '\u{1F5DC}', color: '#8B5CF6', border: '#8B5CF6', apply: s => { s.ceilOffset += 80 } },
   { name: 'Extra Fruit',    icon: '\u{1F34A}', color: '#F97316', border: '#F97316', apply: s => { s.extraTypes += 1 } },
   { name: 'Ice Tiles',      icon: '\u{2744}\u{FE0F}', color: '#38BDF8', border: '#38BDF8', apply: s => { s.frozenTiles = true } },
   { name: 'Faster Rise',    icon: '\u{23F1}\u{FE0F}', color: '#FACC15', border: '#FACC15', apply: s => { s.speedMul *= 1.2 } },
-  { name: 'Tiny Tiles',     icon: '\u{1F50D}', color: '#EC4899', border: '#EC4899', apply: s => { s.tinyTiles = true } },
+  { name: 'Tiny Tiles',     icon: '\u{1F50D}', color: '#34D399', border: '#34D399', apply: s => { s.tinyTiles = true } },
 ];
 
 // ===== BIRD VARIANTS (one per round) =====
@@ -417,18 +432,25 @@ const BIRD_SVGS = [
 <g fill="#E8923E" stroke="#C07020" stroke-width="0.8"><path d="M40,75 L38,82 L34,82 M38,82 L38,84 M38,82 L42,82"/><path d="M52,75 L54,82 L50,82 M54,82 L54,84 M54,82 L58,82"/></g>
 <defs><radialGradient id="bGrad" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#F06850" stop-opacity="0.6"/><stop offset="100%" stop-color="#C83828" stop-opacity="0.3"/></radialGradient></defs>`,
 
-  // Round 2: Green Parakeet — elongated, long tail, pointed head crest
-  `<ellipse cx="46" cy="52" rx="22" ry="26" fill="#22C55E"/>
-<ellipse cx="46" cy="52" rx="22" ry="26" fill="url(#bGrad)"/>
-<ellipse cx="40" cy="60" rx="12" ry="14" fill="#BBF7D0" opacity="0.7"/>
-<g class="wing-flap"><ellipse cx="58" cy="44" rx="20" ry="11" fill="#15803D" transform="rotate(-15,58,44)"/><ellipse cx="58" cy="44" rx="15" ry="7" fill="#16A34A" transform="rotate(-15,58,44)"/><line x1="46" y1="40" x2="74" y2="34" stroke="#14532D" stroke-width="1" opacity="0.4"/><line x1="46" y1="44" x2="74" y2="40" stroke="#14532D" stroke-width="1" opacity="0.4"/></g>
-<ellipse cx="36" cy="34" rx="7" ry="5" fill="#4ADE80" opacity="0.5"/>
-<circle cx="34" cy="38" r="8" fill="#fff" stroke="#1a5c2a" stroke-width="1.5"/><circle id="birdPupil" cx="32" cy="37" r="4.8" fill="#222"/><circle cx="30" cy="35" r="2.2" fill="#fff"/><circle cx="34" cy="39" r="1.0" fill="#fff" opacity="0.6"/>
-<path d="M22,42 C16,39 14,44 16,47 C14,44 16,51 22,49 Z" fill="#6B7280" stroke="#4B5563" stroke-width="0.6"/>
-<ellipse cx="26" cy="48" rx="4" ry="2.5" fill="#86EFAC" opacity="0.4"/>
-<polygon points="66,38 88,26 86,36 90,40 88,46 66,48" fill="#15803D"/><polygon points="66,48 90,50 88,56 86,60 66,54" fill="#0D9488"/><polygon points="66,54 84,62 82,66 66,58" fill="#15803D" opacity="0.7"/>
-<ellipse cx="38" cy="24" rx="3" ry="8" fill="#16A34A" transform="rotate(-20,38,24)"/><ellipse cx="42" cy="22" rx="2" ry="7" fill="#22C55E" transform="rotate(-10,42,22)"/><ellipse cx="35" cy="26" rx="2" ry="6" fill="#15803D" transform="rotate(-30,35,26)"/>
-<g fill="#D97706" stroke="#92400E" stroke-width="0.8"><path d="M38,77 L36,83 L32,83 M36,83 L36,85 M36,83 L40,83"/><path d="M50,77 L52,83 L48,83 M52,83 L52,85 M52,83 L56,83"/></g>
+  // Round 2: Green Owl — round compact body, huge owl eyes, short ear tufts, no tail
+  `<ellipse cx="48" cy="55" rx="25" ry="26" fill="#22C55E"/>
+<ellipse cx="48" cy="55" rx="25" ry="26" fill="url(#bGrad)"/>
+<ellipse cx="45" cy="62" rx="17" ry="16" fill="#BBF7D0" opacity="0.7"/>
+<path d="M42,50 L40,53 L44,52 M48,51 L46,54 L50,53 M54,52 L52,55 L56,54" stroke="#15803D" stroke-width="0.6" fill="none" opacity="0.35"/>
+<path d="M39,57 L37,60 L41,59 M50,58 L48,61 L52,60" stroke="#15803D" stroke-width="0.5" fill="none" opacity="0.25"/>
+<g class="wing-flap"><ellipse cx="64" cy="52" rx="14" ry="16" fill="#15803D" transform="rotate(-5,64,52)"/><ellipse cx="64" cy="52" rx="10" ry="12" fill="#16A34A" transform="rotate(-5,64,52)"/><line x1="58" y1="44" x2="72" y2="42" stroke="#14532D" stroke-width="0.8" opacity="0.35"/><line x1="58" y1="49" x2="74" y2="47" stroke="#14532D" stroke-width="0.8" opacity="0.35"/><line x1="58" y1="54" x2="73" y2="53" stroke="#14532D" stroke-width="0.7" opacity="0.25"/><path d="M60,42 C64,38 68,39 72,42" stroke="#14532D" stroke-width="0.7" fill="none" opacity="0.3"/><path d="M60,58 C64,62 68,61 72,58" stroke="#14532D" stroke-width="0.7" fill="none" opacity="0.3"/></g>
+<ellipse cx="42" cy="42" rx="18" ry="16" fill="#16A34A" opacity="0.6"/>
+<path d="M30,42 C28,38 30,34 34,33 C32,30 36,28 40,30" fill="#22C55E" stroke="#15803D" stroke-width="0.8" opacity="0.6"/>
+<path d="M54,42 C56,38 58,34 56,31 C58,28 62,30 60,33" fill="#22C55E" stroke="#15803D" stroke-width="0.8" opacity="0.6"/>
+<circle cx="36" cy="42" r="13" fill="#D9F99D" opacity="0.3"/><circle cx="52" cy="42" r="13" fill="#D9F99D" opacity="0.3"/>
+<circle cx="36" cy="42" r="12" fill="#fff" stroke="#14532D" stroke-width="1.8"/><circle id="birdPupil" cx="34" cy="41" r="7.5" fill="#111"/><circle cx="31" cy="39" r="3.5" fill="#fff"/><circle cx="36" cy="43" r="1.8" fill="#fff" opacity="0.6"/>
+<circle cx="52" cy="42" r="12" fill="#fff" stroke="#14532D" stroke-width="1.8"/><circle id="birdPupil2" cx="50" cy="41" r="7.5" fill="#111"/><circle cx="48" cy="39" r="3.5" fill="#fff"/><circle cx="52" cy="43" r="1.8" fill="#fff" opacity="0.6"/>
+<path d="M42,48 C40,50 38,50 40,52 C38,52 40,54 44,52 Z" fill="#8B6914" stroke="#6B5210" stroke-width="0.7"/>
+<ellipse cx="33" cy="50" rx="4" ry="2.5" fill="#86EFAC" opacity="0.45"/>
+<ellipse cx="53" cy="50" rx="3.5" ry="2" fill="#86EFAC" opacity="0.35"/>
+<polygon points="32,28 28,18 36,24" fill="#16A34A" stroke="#15803D" stroke-width="0.6"/><polygon points="34,27 30,16 38,22" fill="#22C55E" opacity="0.7"/>
+<polygon points="56,28 60,18 52,24" fill="#16A34A" stroke="#15803D" stroke-width="0.6"/><polygon points="54,27 58,16 50,22" fill="#22C55E" opacity="0.7"/>
+<g fill="#D97706" stroke="#92400E" stroke-width="0.8"><path d="M40,80 L38,85 L35,84 M38,85 L38,87 M38,85 L41,84"/><path d="M52,80 L54,85 L51,84 M54,85 L54,87 M54,85 L57,84"/></g>
 <defs><radialGradient id="bGrad" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#4ADE80" stop-opacity="0.5"/><stop offset="100%" stop-color="#15803D" stop-opacity="0.3"/></radialGradient></defs>`,
 
   // Round 3: Yellow Canary — tiny and plump, big round head, minimal tail
@@ -479,6 +501,15 @@ const BIRD_SVGS = [
 <defs><radialGradient id="bGrad" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#334155" stop-opacity="0.4"/><stop offset="100%" stop-color="#0f172a" stop-opacity="0.3"/></radialGradient></defs>`,
 ];
 
+// ===== BIRD VIEWBOX DATA (tight crop so all birds fill their element equally) =====
+const BIRD_VB = [
+  { vb: '17 25 62 62', aspect: 1.0,    bodyFrac: 1.0  },  // Robin: compact, square
+  { vb: '16 12 64 78', aspect: 64/78,  bodyFrac: 1.0  },  // Owl: round compact, ear tufts
+  { vb: '10 21 67 66', aspect: 67/66,  bodyFrac: 1.0  },  // Canary: small round, near-square
+  { vb: '1 2 100 87', aspect: 100/87,  bodyFrac: 0.75 },  // Blue Macaw: tail ~25% overhang
+  { vb: '-5 20 88 67', aspect: 88/67,  bodyFrac: 0.70 },  // Toucan: beak ~30% overhang
+];
+
 // ===== STATE =====
 const S = {
   phase: 'idle',
@@ -505,6 +536,8 @@ const S = {
   cellSize: 0,
   cageH: 0,
   cageW: 0,
+  spikeH: 50,
+  birdAspect: 1,
   ctaDismissed: false,
   birdMoveTimer: 0,
   birdX: 0,
@@ -522,6 +555,7 @@ const tileContainer = $('tileContainer');
 const stack = $('stack');
 const birdWrap = $('birdWrap');
 const birdSvg = birdWrap.querySelector('.bird-svg');
+const tileElMap = new Map();
 
 // ===== UTILITIES =====
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -537,12 +571,14 @@ function shuffle(arr) {
 // ===== MEASUREMENT =====
 const WALL_W = 10; // cage wall width (padding, rendered as div overlays)
 function measure() {
-  S.cageH = cage.clientHeight;
-  S.cageW = cage.clientWidth;
+  const rect = cage.getBoundingClientRect();
+  S.cageH = rect.height;
+  S.cageW = rect.width;
   S.cols = S.tinyTiles ? 8 : 7;
   const avail = S.cageW - WALL_W * 2;
   S.cellSize = (avail - (S.cols - 1) * HGAP) / S.cols;
   S.speedScale = S.cageH / 700; // normalize speed for screen height
+  S.spikeH = Math.round(S.cageH * 50 / 700); // both top & bottom spikes — 30% smaller than original 72
 }
 
 // ===== SPIKES =====
@@ -550,6 +586,9 @@ function initSpikes() {
   const contentW = S.cageW - WALL_W * 2; // width between the brown walls
   const n = Math.floor(contentW / 22);    // whole spikes that fit at base size
   const halfW = contentW / n / 2;         // exact half-width so N spikes fill contentW
+
+  // Set spike height on cage so it cascades to all spike elements
+  cage.style.setProperty('--ssh', S.spikeH + 'px');
 
   for (const [id, cls] of [['ceilingSpikes','spike-down'],['spikeBarUp','sb-up']]) {
     const el = $(id); el.innerHTML = '';
@@ -619,13 +658,18 @@ function spawnIceBreak(el) {
 // ===== TILE POOL GENERATION =====
 function genPool(totalTiles, typeCount) {
   const icons = ICONS.slice(0, typeCount);
-  const groups = Math.ceil(totalTiles / 3);
+  // Explicitly assign groups of 3 to each type — never truncate a group
+  const totalGroups = Math.floor(totalTiles / 3);
+  const basePerType = Math.floor(totalGroups / typeCount);
+  let extra = totalGroups - basePerType * typeCount;
   let pool = [];
-  for (let i = 0; i < groups; i++) {
-    const ic = icons[i % icons.length];
-    pool.push(ic, ic, ic);
+  for (let t = 0; t < typeCount; t++) {
+    const groups = basePerType + (extra > 0 ? 1 : 0);
+    if (extra > 0) extra--;
+    for (let g = 0; g < groups; g++) {
+      pool.push(icons[t], icons[t], icons[t]);
+    }
   }
-  pool = pool.slice(0, totalTiles);
   return shuffle(pool);
 }
 
@@ -708,11 +752,13 @@ function tileLeft(col) {
   return WALL_W + col * (S.cellSize + HGAP);
 }
 function containerHeight() {
+  if (S.totalRows <= 0) return 0;
   return S.totalRows * S.cellSize + (S.totalRows - 1) * VGAP;
 }
 
 function renderTiles() {
   tileContainer.innerHTML = '';
+  tileElMap.clear();
   tileContainer.style.height = containerHeight() + 'px';
   const fontSize = Math.round(S.cellSize * 0.65 * S.tileScale);
   for (let r = 0; r < S.totalRows; r++) {
@@ -736,12 +782,13 @@ function renderTiles() {
         S._pressedTile = { row: +this.dataset.row, col: +this.dataset.col };
       });
       tileContainer.appendChild(el);
+      tileElMap.set(cell.id, el);
     }
   }
 }
 
 function getTileEl(id) {
-  return tileContainer.querySelector(`[data-id="${id}"]`);
+  return tileElMap.get(+id) || null;
 }
 
 function repositionTile(cell, row, col) {
@@ -756,16 +803,16 @@ function repositionTile(cell, row, col) {
 
 // ===== STACK POSITIONING =====
 function positionStack() {
-  const stackH = SPIKE_H + PLANK_H + containerHeight() + PRESS_H;
+  const stackH = S.spikeH + PLANK_H + containerHeight() + PRESS_H;
   stack.style.transform = `translateY(${stackH - S.visiblePx + S.stackBounceOffset}px)`;
 }
 
 function getSpikeBarTopY() {
-  return S.cageH - S.visiblePx - SPIKE_H;
+  return S.cageH - S.visiblePx;
 }
 
 function getCeilBottom() {
-  return CEIL_SPIKE_H + S.ceilOffset;
+  return S.spikeH + S.ceilOffset * S.cageH / 700;
 }
 
 function getFreeSpace() {
@@ -773,14 +820,16 @@ function getFreeSpace() {
 }
 
 function getBirdH() {
-  return 192 * S.birdScale;
+  return S.cageH * 0.216 * S.birdScale; // 20% smaller than original 0.27
 }
 
 // ===== BIRD =====
 function updateBird(dt) {
   const free = getFreeSpace();
   const bh = getBirdH();
-  const ratio = Math.max(0, Math.min(1, 1 - free / (S.cageH * 0.6)));
+  // ratio: 0 = safe, 1 = losing. Use base (unscaled) bh for range to dampen Giant Bird mood
+  const baseBh = S.cageH * 0.216;
+  const ratio = Math.max(0, Math.min(1, 1 - (free - bh * DEATH_GAP) / (baseBh * 3)));
 
   // Track closest call (margin from death = free space minus bird height)
   const margin = free - bh;
@@ -788,7 +837,7 @@ function updateBird(dt) {
 
   // Mood (don't flicker during cascades)
   let mood = 'calm';
-  if (ratio > 0.4) mood = 'worried';
+  if (ratio > 0.5) mood = 'worried';
   if (ratio > 0.7) mood = 'frantic';
   if (S.birdMood !== mood && !S.cascading) {
     S.birdMood = mood;
@@ -799,25 +848,41 @@ function updateBird(dt) {
   const pupil = $('birdPupil');
   if (S.eyeBaseCx !== undefined) {
     const maxD = Math.max(2, (S.eyeWhiteR || 8) - (S.eyePupilR || 5) + 1);
+    let dCx = 0, dCy = 0;
     if (mood === 'calm') {
-      pupil.setAttribute('cy', S.eyeBaseCy);
-      pupil.setAttribute('cx', S.eyeBaseCx);
+      dCx = 0; dCy = 0;
     } else if (mood === 'worried') {
-      pupil.setAttribute('cy', S.eyeBaseCy + maxD * 0.55);
-      pupil.setAttribute('cx', S.eyeBaseCx + maxD * 0.15);
+      dCx = maxD * 0.15; dCy = maxD * 0.55;
     } else {
-      pupil.setAttribute('cy', S.eyeBaseCy + maxD * 0.9);
-      pupil.setAttribute('cx', S.eyeBaseCx + maxD * 0.2);
+      dCx = maxD * 0.2; dCy = maxD * 0.9;
+    }
+    pupil.setAttribute('cx', S.eyeBaseCx + dCx);
+    pupil.setAttribute('cy', S.eyeBaseCy + dCy);
+    // Mirror to second eye if present (owl)
+    const pupil2 = $('birdPupil2');
+    if (pupil2 && S.eye2BaseCx !== undefined) {
+      pupil2.setAttribute('cx', S.eye2BaseCx + dCx);
+      pupil2.setAttribute('cy', S.eye2BaseCy + dCy);
     }
   }
 
-  // Size
-  const size = bh;
-  birdSvg.style.width = size + 'px';
+  // Size (height fixed, width from aspect ratio so bird isn't squished)
+  let size = bh;
+  let birdW = size * (S.birdAspect || 1);
+  // Cap width so bird never overflows the cage
+  const maxBirdW = S.cageW - 32;
+  if (birdW > maxBirdW) {
+    birdW = maxBirdW;
+    size = birdW / (S.birdAspect || 1);
+  }
   birdSvg.style.height = size + 'px';
+  birdSvg.style.width = birdW + 'px';
 
   // Position: wall-to-wall pacing — bird always moves beak-first
-  const maxX = Math.max(10, S.cageW - size - 16);
+  // Allow beak/tail overhang past cage walls so wide birds have room to pace
+  const overhang = birdW * (1 - (S.bodyFrac || 1));
+  const minX = 4 - overhang * 0.5;
+  const maxX = Math.max(minX + 20, S.cageW - birdW - 16 + overhang * 0.5);
   const spikeTop = getSpikeBarTopY();
   const ceilBot = getCeilBottom();
   const freeH = Math.max(10, spikeTop - ceilBot - size);
@@ -829,24 +894,32 @@ function updateBird(dt) {
   const hSpeed = mood === 'frantic' ? 120 : mood === 'worried' ? 80 : 50;
   S.birdX += S.birdDir * hSpeed * (dt / 1000);
 
-  // Vertical: drift toward random target
-  const vDiff = S.birdTargetY - S.birdY;
-  S.birdY += Math.sign(vDiff) * Math.min(Math.abs(vDiff), hSpeed * 0.3 * (dt / 1000));
-
   // Hit wall? Turn around, pick new vertical target
   if (S.birdX >= maxX) {
     S.birdX = maxX;
     S.birdDir = -1;
     S.birdTargetY = ceilBot + 4 + Math.random() * Math.max(5, freeH * 0.5);
-  } else if (S.birdX <= 4) {
-    S.birdX = 4;
+  } else if (S.birdX <= minX) {
+    S.birdX = minX;
     S.birdDir = 1;
     S.birdTargetY = ceilBot + 4 + Math.random() * Math.max(5, freeH * 0.5);
   }
 
-  // Smooth vertical bounds
+  // When frantic, bird flees upward — centers visual body between spikes at loss
+  const panicking = mood === 'frantic';
+  if (panicking) {
+    // With tight viewBox, visual center ≈ 50% of bh; center that in the gap
+    S.birdTargetY = ceilBot + free / 2 - bh * 0.5;
+  }
+
+  // Vertical: drift toward target — faster when panicking
+  const vSpeed = panicking ? hSpeed * 0.8 : hSpeed * 0.3;
+  const vDiff = S.birdTargetY - S.birdY;
+  S.birdY += Math.sign(vDiff) * Math.min(Math.abs(vDiff), vSpeed * (dt / 1000));
+
+  // Smooth vertical bounds (relaxed during panic to let bird overlap spike whitespace)
   const maxY = ceilBot + freeH;
-  const minY = ceilBot + 2;
+  const minY = panicking ? ceilBot - bh * 0.25 : ceilBot + 2;
   if (S.birdY > maxY) S.birdY += (maxY - S.birdY) * 0.15;
   if (S.birdY < minY) S.birdY += (minY - S.birdY) * 0.15;
 
@@ -870,11 +943,12 @@ function birdHop() {
 function updateDanger() {
   const free = getFreeSpace();
   const bh = getBirdH();
-  const ratio = Math.max(0, Math.min(1, 1 - free / (S.cageH * 0.5)));
+  const baseBh = S.cageH * 0.216;
+  const ratio = Math.max(0, Math.min(1, 1 - (free - bh * DEATH_GAP) / (baseBh * 3)));
   const overlay = $('dangerOverlay');
 
-  if (ratio > 0.3) {
-    overlay.style.opacity = Math.min(1, (ratio - 0.3) * 2.5);
+  if (ratio > 0.45) {
+    overlay.style.opacity = Math.min(1, (ratio - 0.45) * 3.6);
     overlay.classList.toggle('pulse', ratio > 0.7);
   } else {
     overlay.style.opacity = 0;
@@ -892,8 +966,21 @@ function updateDanger() {
 }
 
 // ===== MATCH DETECTION & SELECTION =====
+// Find a tile's current grid position by its ID (survives cascade gravity moves)
+function findCellPos(id) {
+  for (let r = 0; r < S.totalRows; r++) {
+    for (let c = 0; c < S.cols; c++) {
+      const cell = S.grid[r][c];
+      if (cell && cell.id === id) return { row: r, col: c, cell };
+    }
+  }
+  return null;
+}
+
 function tapTile(row, col) {
   if (S.phase !== 'playing') return;
+  // Block input when death is imminent — prevents last-second clears that can't resolve
+  if (S.rising && !S.cascading && getFreeSpace() < getBirdH() * (DEATH_GAP + 0.1)) return;
   const cell = S.grid[row]?.[col];
   if (!cell) return;
 
@@ -920,8 +1007,8 @@ function tapTile(row, col) {
     return;
   }
 
-  // Deselect if already selected
-  const si = S.selected.findIndex(s => s.row === row && s.col === col);
+  // Deselect if already selected (by tile ID — survives cascade position changes)
+  const si = S.selected.findIndex(s => s === cell.id);
   if (si >= 0) {
     S.selected.splice(si, 1);
     el.classList.remove('selected');
@@ -931,13 +1018,12 @@ function tapTile(row, col) {
 
   // Check if same icon as current selection
   if (S.selected.length > 0) {
-    const first = S.selected[0];
-    const firstCell = S.grid[first.row]?.[first.col];
-    if (firstCell && firstCell.icon !== cell.icon) {
-      // Mismatch
-      for (const s of S.selected) {
-        const se = getTileEl(S.grid[s.row]?.[s.col]?.id);
-        if (se) { se.classList.remove('selected'); se.classList.add('mismatch'); se.style.zIndex = S.totalRows - s.row; }
+    const firstPos = findCellPos(S.selected[0]);
+    if (firstPos && firstPos.cell.icon !== cell.icon) {
+      // Mismatch — clear all selected tiles
+      for (const selId of S.selected) {
+        const se = getTileEl(selId);
+        if (se) { se.classList.remove('selected'); se.classList.add('mismatch'); se.style.zIndex = S.totalRows - (+se.dataset.row); }
       }
       el.classList.add('mismatch');
       setTimeout(() => {
@@ -949,8 +1035,8 @@ function tapTile(row, col) {
     }
   }
 
-  // Select
-  S.selected.push({ row, col });
+  // Select (store tile ID, not position)
+  S.selected.push(cell.id);
   el.classList.add('selected');
   el.style.zIndex = 100 + S.totalRows - row;
   SFX.select(S.selected.length);
@@ -962,24 +1048,23 @@ function tapTile(row, col) {
 }
 
 function doMatch() {
-  const items = [...S.selected];
+  const selIds = [...S.selected];
   S.selected = [];
 
-  // Snapshot particle positions BEFORE adding clearing class (avoids scale offset)
-  const particleData = [];
-  for (const s of items) {
-    const cell = S.grid[s.row]?.[s.col];
-    if (!cell) continue;
-    const el = getTileEl(cell.id);
+  // Resolve current grid positions by tile ID (safe after cascade gravity moves)
+  const resolved = [];
+  for (const id of selIds) {
+    const pos = findCellPos(id);
+    if (!pos) continue;
+    const el = getTileEl(id);
     if (!el) continue;
-    const rect = el.getBoundingClientRect();
-    particleData.push({ el, icon: cell.icon, rect });
+    resolved.push({ ...pos, el, rect: el.getBoundingClientRect() });
   }
 
-  // Now add clearing class and spawn particles from snapshot
-  for (const pd of particleData) {
-    pd.el.classList.add('clearing');
-    spawnParticles(pd.rect, pd.icon);
+  // Snapshot particle positions BEFORE adding clearing class (avoids scale offset)
+  for (const r of resolved) {
+    r.el.classList.add('clearing');
+    spawnParticles(r.rect, r.cell.icon);
   }
 
   SFX.matchClear();
@@ -992,23 +1077,25 @@ function doMatch() {
   }
 
   // Remove from grid immediately (animation still plays visually)
-  for (const s of items) {
-    S.grid[s.row][s.col] = null;
+  for (const r of resolved) {
+    S.grid[r.row][r.col] = null;
   }
 
   // Schedule cascade after clearing animation finishes — game loop continues unpaused
   setTimeout(() => {
-    tileContainer.querySelectorAll('.clearing').forEach(el => el.remove());
+    if (S.phase !== 'playing') return; // game ended during clearing animation
+    tileContainer.querySelectorAll('.clearing').forEach(el => { tileElMap.delete(+el.dataset.id); el.remove(); });
     S.cascading = true;
     runCascade().then(() => {
       S.cascading = false;
+      if (S.phase !== 'playing') return; // game ended during cascade
       // Fire deferred match if 3 tiles were selected during cascade
       if (S.selected.length === 3) {
         doMatch();
         return;
       }
       // Check win
-      if (S.phase === 'playing' && S.grid.every(row => row.every(c => c === null))) {
+      if (S.grid.every(row => row.every(c => c === null))) {
         roundComplete();
       }
     });
@@ -1074,13 +1161,7 @@ function applyGravity() {
   return moved;
 }
 
-async function animateGravity(spikeDropPx = 0) {
-  // Snapshot old grid row for each tile BEFORE repositioning.
-  const oldRows = {};
-  tileContainer.querySelectorAll('.tile').forEach(el => {
-    oldRows[el.dataset.id] = +el.dataset.row;
-  });
-
+async function animateGravity(spikeDropPx = 0, oldRows) {
   // Reposition tiles to their new grid positions
   for (let r = 0; r < S.totalRows; r++) {
     for (let c = 0; c < S.cols; c++) {
@@ -1089,26 +1170,30 @@ async function animateGravity(spikeDropPx = 0) {
     }
   }
 
-  // Animate using grid-relative deltas (FLIP technique).
+  // Animate using grid-relative deltas (FLIP technique) — no querySelectorAll
   let maxDuration = 0;
   const flips = [];
-  tileContainer.querySelectorAll('.tile').forEach(el => {
-    const prevRow = oldRows[el.dataset.id];
-    if (prevRow === undefined) return;
-    const newRow = +el.dataset.row;
-    const rowDelta = prevRow - newRow;
-    if (rowDelta === 0) return;
+  for (let r = 0; r < S.totalRows; r++) {
+    for (let c = 0; c < S.cols; c++) {
+      const cell = S.grid[r][c];
+      if (!cell) continue;
+      const prevRow = oldRows.get(cell.id);
+      if (prevRow === undefined || prevRow === r) continue;
+      const el = tileElMap.get(cell.id);
+      if (!el) continue;
 
-    const dy = -(rowDelta) * (S.cellSize + VGAP);
-    const absDelta = Math.abs(rowDelta);
-    const dur = Math.min(250 + (absDelta - 1) * 100, 500);
-    maxDuration = Math.max(maxDuration, dur);
+      const rowDelta = prevRow - r;
+      const dy = -(rowDelta) * (S.cellSize + VGAP);
+      const absDelta = Math.abs(rowDelta);
+      const dur = Math.min(250 + (absDelta - 1) * 100, 500);
+      maxDuration = Math.max(maxDuration, dur);
 
-    el.style.transition = 'none';
-    el.style.transform = `translateY(${dy}px)`;
-    el.style.willChange = 'transform';
-    flips.push({ el, dur });
-  });
+      el.style.transition = 'none';
+      el.style.transform = `translateY(${dy}px)`;
+      el.style.willChange = 'transform';
+      flips.push({ el, dur });
+    }
+  }
   void tileContainer.offsetHeight; // single reflow for all tiles
   for (const f of flips) {
     f.el.style.transition = `transform ${f.dur}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
@@ -1130,12 +1215,12 @@ async function animateGravity(spikeDropPx = 0) {
   SFX.tileFall();
   if (maxDuration > 0) await sleep(maxDuration + 30);
 
-  // Cleanup tiles
-  tileContainer.querySelectorAll('.tile').forEach(el => {
-    el.style.willChange = 'auto';
-    el.style.transition = '';
-    el.style.transform = '';
-  });
+  // Cleanup only animated tiles (avoids querySelectorAll)
+  for (const f of flips) {
+    f.el.style.willChange = 'auto';
+    f.el.style.transition = '';
+    f.el.style.transform = '';
+  }
   // Note: spike bar transform is cleaned up in runCascade after collapse
 }
 
@@ -1156,6 +1241,15 @@ async function runCascade() {
   let currentSpikeBarOffset = 0;
 
   while (true) {
+    if (S.phase !== 'playing') break; // game ended mid-cascade
+    // Snapshot current row positions before gravity shifts them
+    const oldRows = new Map();
+    for (let r = 0; r < S.totalRows; r++) {
+      for (let c = 0; c < S.cols; c++) {
+        const cell = S.grid[r][c];
+        if (cell) oldRows.set(cell.id, r);
+      }
+    }
     const moved = applyGravity();
 
     if (moved) {
@@ -1167,13 +1261,20 @@ async function runCascade() {
       }
       const spikeDropPx = emptyTopRows * (S.cellSize + VGAP);
 
-      await animateGravity(spikeDropPx);
+      await animateGravity(spikeDropPx, oldRows);
       currentSpikeBarOffset = spikeDropPx;
     }
 
     const removed = collapseEmptyRows();
     if (removed > 0) {
       const removedPx = removed * (S.cellSize + VGAP);
+
+      // All tiles cleared — stop rising, let normal FLIP handle the drop
+      if (S.totalRows === 0) {
+        S.rising = false;
+        S.stackBounceOffset = 0;
+      }
+
       S.visiblePx -= removedPx;
 
       // How much visual drop wasn't already animated by gravity
@@ -1226,12 +1327,12 @@ function gameLoop(ts) {
       const cfg = ROUND_CFG[S.round];
       let speed = cfg.speed * S.speedMul * S.speedScale;
 
-      // Rubber-banding
+      // Rubber-banding (bird-height relative for consistent feel across screens)
       const free = getFreeSpace();
-      const rowH = S.cellSize + VGAP;
-      if (free < rowH * 1) speed *= 0.5;
-      else if (free < rowH * 2) speed *= 0.7;
-      else if (free > rowH * 4) speed *= 1.18;
+      const bh = getBirdH();
+      if (free < bh * 1.2) speed *= 0.5;
+      else if (free < bh * 2) speed *= 0.7;
+      else if (free > bh * 4) speed *= 1.18;
 
       S.visiblePx += speed * (dt / 1000);
     }
@@ -1250,7 +1351,7 @@ function gameLoop(ts) {
     updateDanger();
 
     // Lose check — don't trigger during cascade (tiles are actively resolving)
-    if (getFreeSpace() < getBirdH() * 0.6 && S.rising && !S.cascading) {
+    if (getFreeSpace() < getBirdH() * DEATH_GAP && S.rising && !S.cascading) {
       loseGame();
     }
   }
@@ -1274,9 +1375,13 @@ async function startRound() {
   S.stackBounceOffset = 0;
   birdSvg.style.transform = '';
 
-  // Set bird SVG for this round
+  // Set bird SVG for this round (tight viewBox so all birds appear same height)
   const birdIdx = Math.min(S.round, BIRD_SVGS.length - 1);
   birdSvg.innerHTML = BIRD_SVGS[birdIdx];
+  const vbData = BIRD_VB[birdIdx];
+  birdSvg.setAttribute('viewBox', vbData.vb);
+  S.birdAspect = vbData.aspect;
+  S.bodyFrac = vbData.bodyFrac || 1.0;
 
   // Cache eye geometry for relative pupil animation
   const _pupil = $('birdPupil');
@@ -1288,6 +1393,15 @@ async function startRound() {
     if (_eyeW && _eyeW.tagName === 'circle') {
       S.eyeWhiteR = +_eyeW.getAttribute('r');
     }
+  }
+  // Cache second eye (owl has two forward-facing eyes)
+  const _pupil2 = $('birdPupil2');
+  if (_pupil2) {
+    S.eye2BaseCx = +_pupil2.getAttribute('cx');
+    S.eye2BaseCy = +_pupil2.getAttribute('cy');
+  } else {
+    S.eye2BaseCx = undefined;
+    S.eye2BaseCy = undefined;
   }
 
   $('roundBadge').textContent = `ROUND ${S.round + 1}/${TOTAL_ROUNDS}`;
@@ -1306,17 +1420,26 @@ async function startRound() {
     ? 'inset 0 1px 0 rgba(255,210,120,0.25),inset 0 -1px 0 rgba(0,0,0,0.35),0 0 12px rgba(249,115,22,0.6)'
     : '';
 
+  // Reset spikeBarUp transform (may have been animated during celebration)
+  const spikeBarUp = $('spikeBarUp');
+  if (spikeBarUp) { spikeBarUp.style.transition = ''; spikeBarUp.style.transform = ''; }
+
+  // Reset match clear sound progression for new round
+  SFX._clearIdx = 0;
+  SFX._combo = 0;
+
   measure();
   initSpikes();
   initGrid();
   renderTiles();
 
-  // Position ceiling spikes based on Smaller Cage modifier
-  $('ceilingSpikes').style.top = S.ceilOffset + 'px';
-  $('topPress').style.height = S.ceilOffset > 0 ? S.ceilOffset + 'px' : '0';
+  // Position ceiling spikes based on Smaller Cage modifier (scaled to screen)
+  const scaledCeilOff = Math.round(S.ceilOffset * S.cageH / 700);
+  $('ceilingSpikes').style.top = scaledCeilOff + 'px';
+  $('topPress').style.height = scaledCeilOff > 0 ? scaledCeilOff + 'px' : '0';
 
   // Start with 1.5 rows visible
-  S.visiblePx = S.cellSize * 1.5 + VGAP + SPIKE_H + PLANK_H;
+  S.visiblePx = S.cellSize * 1.5 + VGAP + S.spikeH + PLANK_H;
   positionStack();
 
   // Start spike glint scheduler
@@ -1361,11 +1484,21 @@ async function roundComplete() {
 async function roundCelebration() {
   const game = $('game');
 
+  // Clear danger overlay and background effects
+  $('dangerOverlay').style.opacity = 0;
+  $('dangerOverlay').classList.remove('pulse');
+  cage.style.filter = '';
+
   // Reset bird eyes to calm (don't look down while flying away)
   const _p = $('birdPupil');
   if (_p && S.eyeBaseCx !== undefined) {
     _p.setAttribute('cx', S.eyeBaseCx);
     _p.setAttribute('cy', S.eyeBaseCy);
+  }
+  const _p2 = $('birdPupil2');
+  if (_p2 && S.eye2BaseCx !== undefined) {
+    _p2.setAttribute('cx', S.eye2BaseCx);
+    _p2.setAttribute('cy', S.eye2BaseCy);
   }
 
   // Create falling cage side pieces
@@ -1390,7 +1523,6 @@ async function roundCelebration() {
 
   // Bird happiness — set to calm/hop
   birdWrap.className = 'hop';
-  SFX.rowCollapse();
 
   await sleep(300);
 
@@ -1474,10 +1606,21 @@ async function showWheel() {
   // Reset UI
   wheel.style.transition = 'none';
   wheel.style.transform = 'rotate(0deg)';
+  const wBtns = $('wheelBtns');
+  const wName = $('wheelResultName');
+  const wDesc = $('wheelResultDesc');
+  // Force-hide results and buttons without transition delay
+  wBtns.style.transition = 'none';
+  wName.style.transition = 'none';
+  wDesc.style.transition = 'none';
+  wBtns.classList.remove('show');
+  wName.classList.remove('show');
+  wDesc.classList.remove('show');
   void wheel.offsetHeight;
-  $('wheelResultName').classList.remove('show');
-  $('wheelResultDesc').classList.remove('show');
-  $('wheelBtns').classList.remove('show');
+  // Restore transitions after reflow
+  wBtns.style.transition = '';
+  wName.style.transition = '';
+  wDesc.style.transition = '';
 
   // Show overlay
   $('wheelOverlay').classList.add('active');
@@ -1497,7 +1640,9 @@ async function showWheel() {
   // Spin
   wheel.style.transition = 'transform 3.5s cubic-bezier(0.15, 0.85, 0.25, 1)';
   wheel.style.transform = `rotate(${totalRotation}deg)`;
+  const stopTicks = SFX.startWheelTicks(3500);
   await sleep(3700);
+  stopTicks();
 
   // Show result name (no description — names are self-explanatory)
   SFX.wheelLand();
@@ -1539,9 +1684,28 @@ function winGame() {
   spawnCageBreak();
   setTimeout(() => spawnConfetti(60, true), 300);
 
-  $('winSub').textContent = S.modifiers.length > 0
-    ? `You beat: ${S.modifiers.map(m => m.name).join(' + ')}`
-    : `You cleared all ${TOTAL_ROUNDS} rounds!`;
+  // Show all saved birds
+  const emojiEl = $('winEmoji');
+  emojiEl.innerHTML = '';
+  for (let i = 0; i < TOTAL_ROUNDS; i++) {
+    const vb = BIRD_VB[i];
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', vb.vb);
+    svg.setAttribute('width', '72');
+    svg.setAttribute('height', Math.round(72 / vb.aspect));
+    svg.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
+    svg.style.animation = `pop 0.4s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.1}s both`;
+    svg.innerHTML = BIRD_SVGS[i];
+    emojiEl.appendChild(svg);
+  }
+
+  // Show modifiers with emojis
+  if (S.modifiers.length > 0) {
+    $('winSub').innerHTML = S.modifiers.map(m => `<span class="modifier-pill">${m.icon} ${m.name}</span>`).join('');
+  } else {
+    $('winSub').textContent = `You cleared all ${TOTAL_ROUNDS} rounds!`;
+  }
+
   setTimeout(() => $('winOverlay').classList.add('active'), 700);
   SFX.win();
 }
@@ -1624,6 +1788,9 @@ const SFX = {
   master: null,
   reverb: null,
   _unlocked: false,
+  _clearIdx: 0,
+  _lastClearT: 0,
+  _combo: 0,
 
   init() {
     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1638,6 +1805,7 @@ const SFX = {
     this.dry.connect(this.ctx.destination);
     this.wet.connect(this.ctx.destination);
     this.master.connect(this.dry);
+    this._initSamples();
   },
 
   _createReverb() {
@@ -1706,15 +1874,35 @@ const SFX = {
     o.stop(t + dur + 0.05);
   },
 
-  // Filtered noise burst
+  // Pre-generate reusable noise buffers
+  _initSamples() {
+    // Short click buffer (wheel ticks, tile select)
+    const clickLen = Math.ceil(this.ctx.sampleRate * 0.015);
+    this._clickBuf = this.ctx.createBuffer(1, clickLen, this.ctx.sampleRate);
+    const cd = this._clickBuf.getChannelData(0);
+    for (let i = 0; i < clickLen; i++) cd[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 0.003));
+    // Medium noise buffer (sparkles, swooshes — 200ms)
+    const medLen = Math.ceil(this.ctx.sampleRate * 0.2);
+    this._noiseBuf = this.ctx.createBuffer(1, medLen, this.ctx.sampleRate);
+    const nd = this._noiseBuf.getChannelData(0);
+    for (let i = 0; i < medLen; i++) nd[i] = Math.random() * 2 - 1;
+  },
+
+  // Filtered noise burst (reuses cached buffer for short durations)
   _noise(start, dur, vol = 0.06, freq = 800, q = 3) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime + start;
-    const buf = this.ctx.createBuffer(1, Math.ceil(this.ctx.sampleRate * dur), this.ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    const src = this.ctx.createBufferSource();
-    src.buffer = buf;
+    let src;
+    if (dur <= 0.2 && this._noiseBuf) {
+      src = this.ctx.createBufferSource();
+      src.buffer = this._noiseBuf;
+    } else {
+      const buf = this.ctx.createBuffer(1, Math.ceil(this.ctx.sampleRate * dur), this.ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      src = this.ctx.createBufferSource();
+      src.buffer = buf;
+    }
     const f = this.ctx.createBiquadFilter();
     f.type = 'bandpass';
     f.frequency.value = freq;
@@ -1736,10 +1924,23 @@ const SFX = {
     this._chime(2400, 0.03, 0.08, 0.04);
   },
 
-  // Tile select — escalating C5 → E5 → G5 soft chimes
+  // Tile select — subtle micro-step escalation with tactile click
   select(nth) {
-    const freqs = [523.3, 659.3, 784.0];
-    this._chime(freqs[Math.min(nth - 1, 2)], 0, 0.15, 0.1);
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const base = 698.5; // F5
+    const step = Math.min(nth - 1, 2);
+    const freq = base * Math.pow(2, step * 40 / 1200); // +0, +40, +80 cents
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = 'triangle';
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.065, t + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+    o.connect(g); g.connect(this.master);
+    o.start(t); o.stop(t + 0.09);
+    this._noise(0, 0.012, 0.018, 4500, 7);
   },
 
   // Mismatch — two dissonant soft tones
@@ -1749,12 +1950,21 @@ const SFX = {
     this._noise(0, 0.06, 0.03, 600, 2);
   },
 
-  // Match clear — satisfying bell chime + sparkle noise
+  // Match clear — pentatonic scale with combo-based layering
   matchClear() {
-    this._bell(784, 0, 0.5, 0.12);
-    this._chime(1046.5, 0.04, 0.3, 0.08);
-    this._chime(1318.5, 0.08, 0.25, 0.05);
-    this._noise(0.02, 0.12, 0.04, 6000, 1.5);
+    if (!this.ctx) return;
+    const scale = [523.3, 587.3, 659.3, 784.0, 880.0, 1046.5]; // C major pentatonic
+    const freq = scale[this._clearIdx % scale.length];
+    this._clearIdx++;
+
+    const now = performance.now();
+    this._combo = (now - this._lastClearT < 1800) ? Math.min(this._combo + 1, 5) : 0;
+    this._lastClearT = now;
+
+    this._bell(freq, 0, 0.35, 0.12);
+    if (this._combo >= 1) this._chime(freq * 2, 0.03, 0.22, 0.04 + this._combo * 0.008);
+    if (this._combo >= 3) this._chime(freq * 1.5, 0.05, 0.18, 0.05);
+    if (this._combo >= 2) this._noise(0.02, 0.09, 0.02 + this._combo * 0.004, 6500, 2.5);
   },
 
   // Tile fall — soft thud
@@ -1762,58 +1972,124 @@ const SFX = {
     this._noise(0, 0.05, 0.04, 300, 3);
   },
 
-  // Row collapse — deep resonant thud + ascending relief chime
+  // Row collapse — light clack + descending swoosh + ascending chime
   rowCollapse() {
     if (!this.ctx) return;
-    // Deep thud (pitch sweep down)
+    const t = this.ctx.currentTime;
+    this._noise(0, 0.03, 0.03, 2400, 6);
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(1100, t);
+    o.frequency.exponentialRampToValueAtTime(350, t + 0.1);
+    g.gain.setValueAtTime(0.05, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    o.connect(g); g.connect(this.master);
+    o.start(t); o.stop(t + 0.15);
+    this._chime(523.3, 0.06, 0.22, 0.06);
+    this._chime(698.5, 0.12, 0.22, 0.07);
+  },
+
+  // Wheel land — bright reveal chord (no sub thud)
+  wheelLand() {
+    if (!this.ctx) return;
+    this._chime(2093, 0, 0.06, 0.07);
+    this._noise(0, 0.025, 0.04, 5500, 5);
+    this._bell(523.3, 0.02, 0.7, 0.10);
+    this._bell(659.3, 0.05, 0.65, 0.12);
+    this._bell(784.0, 0.09, 0.6, 0.13);
+    this._bell(1046.5, 0.13, 0.55, 0.11);
+    this._noise(0.04, 0.18, 0.04, 6000, 1.5);
+    this._noise(0.12, 0.14, 0.035, 8000, 2);
+  },
+
+  // Win — triumphant fanfare: quick ascending run → big sustained chord + sparkle cascade
+  win() {
+    if (!this.ctx) return;
+    // Ascending fanfare run (faster, brighter)
+    const run = [392, 523.3, 659.3, 784, 1046.5];
+    run.forEach((f, i) => {
+      this._bell(f, i * 0.07, 0.5 + i * 0.08, 0.09 + i * 0.015);
+    });
+    // Big sustained major chord (wider voicing, louder)
+    this._bell(261.6, 0.40, 1.6, 0.10);  // C4 — root bass
+    this._bell(523.3, 0.42, 1.5, 0.14);  // C5
+    this._bell(659.3, 0.44, 1.45, 0.13); // E5
+    this._bell(784.0, 0.46, 1.4, 0.14);  // G5
+    this._bell(1046.5, 0.48, 1.3, 0.12); // C6
+    this._bell(1318.5, 0.50, 1.2, 0.08); // E6 — top shimmer
+    // Sparkle cascade
+    this._noise(0.35, 0.2, 0.05, 5000, 1.5);
+    this._noise(0.55, 0.18, 0.05, 7000, 1.5);
+    this._noise(0.75, 0.15, 0.04, 9000, 2);
+    // Sub rumble for weight
     const t = this.ctx.currentTime;
     const o = this.ctx.createOscillator();
     const g = this.ctx.createGain();
     o.type = 'sine';
-    o.frequency.setValueAtTime(200, t);
-    o.frequency.exponentialRampToValueAtTime(50, t + 0.35);
-    g.gain.setValueAtTime(0.12, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
-    o.connect(g);
-    g.connect(this.master);
-    o.start(t);
-    o.stop(t + 0.45);
-    // Ascending relief bells
-    this._bell(392, 0.1, 0.4, 0.08);
-    this._bell(523.3, 0.2, 0.45, 0.1);
-    this._bell(659.3, 0.3, 0.5, 0.12);
+    o.frequency.value = 65;
+    g.gain.setValueAtTime(0, t + 0.38);
+    g.gain.linearRampToValueAtTime(0.12, t + 0.5);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 1.8);
+    o.connect(g); g.connect(this.master);
+    o.start(t + 0.38); o.stop(t + 1.85);
   },
 
-  // Wheel land — triumphant reveal chord (major triad bell)
-  wheelLand() {
-    this._bell(523.3, 0, 0.6, 0.12);
-    this._bell(659.3, 0.02, 0.55, 0.1);
-    this._bell(784.0, 0.04, 0.5, 0.12);
-    this._noise(0, 0.15, 0.03, 5000, 1.5);
-  },
-
-  // Win — ascending major scale with overlapping bell tones + sparkle
-  win() {
-    const notes = [392, 440, 523.3, 587.3, 659.3, 784, 1046.5];
-    notes.forEach((f, i) => {
-      this._bell(f, i * 0.09, 0.6 + i * 0.05, 0.08 + i * 0.01);
-    });
-    // Final sustained major chord
-    this._bell(523.3, 0.7, 1.2, 0.1);
-    this._bell(659.3, 0.72, 1.15, 0.08);
-    this._bell(784.0, 0.74, 1.1, 0.1);
-    this._noise(0.3, 0.15, 0.04, 5000, 1.5);
-    this._noise(0.6, 0.12, 0.04, 6000, 1.5);
-  },
-
-  // Lose — descending notes with piano-like decay, minor quality
+  // Lose — soft descending A minor arpeggio (sad but consonant, no thud)
   lose() {
-    const notes = [523.3, 493.9, 440.0, 392.0];
-    notes.forEach((f, i) => {
-      this._bell(f, i * 0.22, 0.5, 0.1);
-    });
-    // Low rumble
-    this._noise(0.5, 0.5, 0.06, 120, 2);
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(500, t);
+    o.frequency.exponentialRampToValueAtTime(200, t + 0.3);
+    g.gain.setValueAtTime(0.06, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+    o.connect(g); g.connect(this.master);
+    o.start(t); o.stop(t + 0.4);
+    this._bell(659.3, 0.05, 0.5, 0.09);
+    this._bell(523.3, 0.25, 0.5, 0.08);
+    this._bell(440.0, 0.45, 0.65, 0.08);
+    this._chime(220.0, 0.70, 0.8, 0.06);
+    this._noise(0.5, 0.25, 0.025, 400, 1.5);
+  },
+
+  // Wheel tick — mechanical detent click
+  wheelTick(vol = 0.055) {
+    if (!this.ctx || !this._clickBuf) return;
+    const t = this.ctx.currentTime;
+    const src = this.ctx.createBufferSource();
+    src.buffer = this._clickBuf;
+    const f = this.ctx.createBiquadFilter();
+    f.type = 'bandpass';
+    f.frequency.value = 3200 + Math.random() * 400;
+    f.Q.value = 9;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.01);
+    src.connect(f); f.connect(g); g.connect(this.master);
+    src.start(t); src.stop(t + 0.015);
+  },
+
+  // Tick scheduler for wheel spin. Returns stop function.
+  startWheelTicks(durationMs = 3500) {
+    const startT = performance.now();
+    let lastTickT = 0, raf = 0, stopped = false;
+    const frame = () => {
+      if (stopped) return;
+      const elapsed = performance.now() - startT;
+      if (elapsed >= durationMs - 250) return;
+      const p = Math.min(elapsed / durationMs, 1);
+      const interval = 50 + 350 * (p * p);
+      if (elapsed - lastTickT >= interval) {
+        this.wheelTick(0.055 * (1 - p * 0.4));
+        lastTickT = elapsed;
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => { stopped = true; cancelAnimationFrame(raf); };
   },
 };
 
@@ -1851,6 +2127,14 @@ const G = {
       }
     });
     document.addEventListener('pointerup', () => { S._pressedTile = null; });
+
+    // Prevent double-tap zoom on mobile
+    let _lastTap = 0;
+    $('game').addEventListener('touchend', e => {
+      const now = Date.now();
+      if (now - _lastTap < 300) e.preventDefault();
+      _lastTap = now;
+    }, { passive: false });
 
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) S.lastTs = 0;
@@ -1958,13 +2242,14 @@ function debugApplyMod(idx) {
     measure();
     initGrid();
     renderTiles();
-    S.visiblePx = S.cellSize * 1.5 + VGAP + SPIKE_H + PLANK_H;
+    S.visiblePx = S.cellSize * 1.5 + VGAP + S.spikeH + PLANK_H;
     positionStack();
   }
-  // Smaller Cage moves ceiling spikes down
+  // Smaller Cage moves ceiling spikes down (scaled to screen)
   if (mod.name === 'Lower Ceiling') {
-    $('ceilingSpikes').style.top = S.ceilOffset + 'px';
-    $('topPress').style.height = S.ceilOffset + 'px';
+    const scaledOff = Math.round(S.ceilOffset * S.cageH / 700);
+    $('ceilingSpikes').style.top = scaledOff + 'px';
+    $('topPress').style.height = scaledOff + 'px';
   }
 }
 
@@ -1972,6 +2257,7 @@ function debugWinRound() {
   if (S.phase !== 'playing') return;
   S.grid = S.grid.map(r => r.map(() => null));
   tileContainer.innerHTML = '';
+  tileElMap.clear();
   S.totalRows = 0;
   tileContainer.style.height = '0px';
   roundComplete();
