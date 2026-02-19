@@ -782,6 +782,22 @@ function renderTiles() {
       el.addEventListener('pointerdown', function(e) {
         S._pressedTile = { row: +this.dataset.row, col: +this.dataset.col };
       });
+      // Redundant pointerup/cancel on tile — mobile WebKit can fail to bubble
+      // pointer events through compositing layers after CSS transform animations
+      el.addEventListener('pointerup', function() {
+        if (S._pressedTile) {
+          const { row, col } = S._pressedTile;
+          S._pressedTile = null;
+          tapTile(row, col);
+        }
+      });
+      el.addEventListener('pointercancel', function() {
+        if (S._pressedTile) {
+          const { row, col } = S._pressedTile;
+          S._pressedTile = null;
+          tapTile(row, col);
+        }
+      });
       tileContainer.appendChild(el);
       tileElMap.set(cell.id, el);
     }
@@ -1335,6 +1351,8 @@ async function runCascade() {
   // Ensure clean state
   spikeBarEl.style.transition = '';
   spikeBarEl.style.transform = '';
+  // Force layout recalc so mobile WebKit updates touch hit-test targets
+  void cage.offsetHeight;
 }
 
 // ===== GAME LOOP =====
@@ -1742,7 +1760,7 @@ function winGame() {
     $('winSub').textContent = `You cleared all ${TOTAL_ROUNDS} rounds!`;
   }
 
-  setTimeout(() => $('winOverlay').classList.add('active'), 700);
+  S._winTimer = setTimeout(() => $('winOverlay').classList.add('active'), 700);
   SFX.win();
 }
 
@@ -1785,7 +1803,7 @@ function loseGame() {
 
   // 1 second dramatic pause, then show loss screen
   $('loseSub').textContent = `Round ${S.round + 1} of ${TOTAL_ROUNDS}`;
-  setTimeout(() => $('loseOverlay').classList.add('active'), 1000);
+  S._loseTimer = setTimeout(() => $('loseOverlay').classList.add('active'), 1000);
 }
 
 function spawnConfetti(count, useFruit) {
@@ -2166,9 +2184,19 @@ const G = {
   },
 
   restart() {
+    // Cancel any pending overlay timers
+    if (S._loseTimer) { clearTimeout(S._loseTimer); S._loseTimer = null; }
+    if (S._winTimer) { clearTimeout(S._winTimer); S._winTimer = null; }
+    S._pressedTile = null;
+
     $('winOverlay').classList.remove('active');
     $('loseOverlay').classList.remove('active');
     $('wheelOverlay').classList.remove('active');
+
+    // Reset danger overlay (only reset on win path before, not loss)
+    const dOv = $('dangerOverlay');
+    dOv.style.opacity = 0;
+    dOv.classList.remove('pulse');
 
     S.round = 0;
     S.modifiers = [];
