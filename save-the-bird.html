@@ -21,7 +21,7 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 @keyframes modPop{0%{transform:scale(0)}100%{transform:scale(1)}}
 
 /* ---- CAGE ---- */
-#cage{flex:1;position:relative;overflow:hidden;padding-left:10px;padding-right:10px;background:linear-gradient(180deg,#6a97b8 0%,#4a7a9a 6%,#3a6a40 14%,#2a5a28 22%,#1e4a18 35%,#163a10 50%,#102e0a 70%,#0c2206 85%,#081806 100%)}
+#cage{flex:1;position:relative;overflow:hidden;padding-left:10px;padding-right:10px;touch-action:none;background:linear-gradient(180deg,#6a97b8 0%,#4a7a9a 6%,#3a6a40 14%,#2a5a28 22%,#1e4a18 35%,#163a10 50%,#102e0a 70%,#0c2206 85%,#081806 100%)}
 #cageWallL,#cageWallR{position:absolute;top:0;bottom:0;pointer-events:none;z-index:2}
 #cageWallL{left:0;width:10px;background:#8C4A14}
 #cageWallR{right:0;width:10px;background:#5C2A08}
@@ -47,7 +47,7 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 
 /* ---- BIRD ---- */
 #birdWrap{position:absolute;z-index:4;will-change:transform}
-.bird-svg{}
+.bird-svg{overflow:visible}
 #birdWrap.calm .bird-svg{animation:birdCalm 2.4s cubic-bezier(0.45,0,0.55,1) infinite}
 #birdWrap.worried .bird-svg{animation:birdWorried 1.4s cubic-bezier(0.45,0,0.55,1) infinite}
 #birdWrap.frantic .bird-svg{animation:birdFrantic 0.8s linear infinite}
@@ -62,7 +62,7 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 @keyframes wingWorried{0%,100%{transform:scaleY(1)}50%{transform:scaleY(0.78) rotate(-5deg)}}
 @keyframes wingFrantic{0%,100%{transform:scaleY(1)}50%{transform:scaleY(0.72) rotate(-8deg)}}
 /* ---- BIRD DISTRESS (tear + wing flutter) ---- */
-@keyframes tearDrop{0%{opacity:0;transform:translateY(0) scale(0.7)}10%{opacity:1;transform:translateY(0) scale(1)}75%{opacity:1;transform:translateY(18px) scale(1,1.15)}100%{opacity:0;transform:translateY(22px) scale(0.8,1.3)}}
+@keyframes tearDrop{0%{opacity:0;transform:translateY(0) scale(0.7)}10%{opacity:1;transform:translateY(0) scale(1)}55%{opacity:1;transform:translateY(12px) scale(1,1.15)}80%{opacity:0;transform:translateY(16px) scale(0.8,1.3)}100%{opacity:0;transform:translateY(16px) scale(0.8,1.3)}}
 .bird-tear{opacity:0;pointer-events:none;transform-box:fill-box;transform-origin:50% 0%}
 .bird-tear.active{animation:tearDrop 1.6s ease-in forwards}
 @keyframes wingDistress{0%{transform:scaleY(1) rotate(0deg)}12%{transform:scaleY(0.6) rotate(-12deg)}25%{transform:scaleY(1) rotate(2deg)}37%{transform:scaleY(0.6) rotate(-12deg)}50%{transform:scaleY(1) rotate(2deg)}62%{transform:scaleY(0.6) rotate(-12deg)}75%{transform:scaleY(1) rotate(2deg)}87%{transform:scaleY(0.6) rotate(-12deg)}100%{transform:scaleY(1) rotate(0deg)}}
@@ -81,7 +81,7 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 #spikePlank{height:8px;background:linear-gradient(180deg,#B8722E 0%,#8C4A14 50%,#5C2A08 100%);box-shadow:inset 0 1px 0 rgba(255,210,120,0.25),inset 0 -1px 0 rgba(0,0,0,0.35)}
 #spikeBarUp{display:flex;position:absolute;top:calc(-1 * var(--ssh,50px));left:0;right:0}
 .sb-up{flex:1 0 0;height:var(--ssh,50px);background:#A8C0D0;clip-path:polygon(50% 0,0 100%,100% 100%);position:relative}
-#tileContainer{position:relative;contain:layout style}
+#tileContainer{position:relative}
 
 /* ---- HYDRAULIC PRESS ---- */
 #hydraulicPress{position:relative;width:100%}
@@ -133,7 +133,7 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 .tile.selected{border-color:#FACC15;background:linear-gradient(160deg,#fffce8,#ffd466);box-shadow:0 0 16px rgba(250,204,21,0.7),0 0 6px rgba(250,204,21,0.5),0 4px 0 #c89820,0 5px 6px rgba(0,0,0,0.15);transform:scale(1.04)}
 .tile.selected{animation:selPulse 0.2s ease-out}
 @keyframes selPulse{0%{box-shadow:0 0 0 3px rgba(250,204,21,0.3),0 4px 0 #c89820}50%{box-shadow:0 0 0 8px rgba(250,204,21,0.5),0 4px 0 #c89820}100%{box-shadow:0 0 16px rgba(250,204,21,0.7),0 4px 0 #c89820}}
-.tile.clearing{animation:tilePop 0.5s cubic-bezier(0.22,0.61,0.36,1) forwards;pointer-events:none;z-index:100!important}
+.tile.clearing{animation:tilePop 0.38s cubic-bezier(0.22,0.61,0.36,1) forwards;pointer-events:none;z-index:100!important}
 @keyframes tilePop{0%{transform:scale(1.04);opacity:1}15%{transform:scale(1.12);opacity:1}28%{transform:scale(1.08);opacity:0.95}100%{transform:scale(0.1);opacity:0}}
 .tile.empty{visibility:hidden;pointer-events:none}
 .tile.mismatch{animation:tileShake 0.4s ease-out;border-color:#EF4444!important;background:linear-gradient(150deg,#ffe0e0,#f5c0c0)!important}
@@ -397,23 +397,23 @@ const HGAP = 1;
 const VGAP = 3;
 const PLANK_H = 8;
 const PRESS_H = 5042; // pressHead(28) + pressPiston(3000) + pressBase(2014)
-const DEATH_GAP = 0.65; // free space < bh * DEATH_GAP → lose (spikes close but don't touch body)
+const DEATH_GAP = 0.9; // free space < bh * DEATH_GAP → lose (spikes borderline touch body)
 
 const ROUND_CFG = [
-  { rows: 9, types: 6, speed: 14, seed: true },
-  { rows: 9, types: 6, speed: 15, seed: false },
-  { rows: 9, types: 6, speed: 16, seed: false },
-  { rows: 9, types: 6, speed: 17, seed: false },
-  { rows: 9, types: 6, speed: 18, seed: false },
+  { rows: 9, types: 6, speed: 18, seed: true },
+  { rows: 9, types: 6, speed: 22, seed: false },
+  { rows: 10, types: 7, speed: 27, seed: false },
+  { rows: 10, types: 7, speed: 33, seed: false },
+  { rows: 11, types: 7, speed: 40, seed: false },
 ];
 const TOTAL_ROUNDS = ROUND_CFG.length;
 
 const MODIFIERS = [
-  { name: 'Giant Bird',     icon: '\u{1F985}', color: '#EF4444', border: '#EF4444', apply: s => { s.birdScale *= 1.5 } },
-  { name: 'Lower Ceiling',  icon: '\u{2B07}\u{FE0F}', color: '#8B5CF6', border: '#8B5CF6', apply: s => { s.ceilOffset += 80 } },
-  { name: 'Extra Fruit',    icon: '\u{1F34A}', color: '#F97316', border: '#F97316', apply: s => { s.extraTypes += 1 } },
-  { name: 'Ice Tiles',      icon: '\u{2744}\u{FE0F}', color: '#38BDF8', border: '#38BDF8', apply: s => { s.frozenTiles = true } },
-  { name: 'Faster Rise',    icon: '\u{23E9}', color: '#FACC15', border: '#FACC15', apply: s => { s.speedMul *= 1.2 } },
+  { name: 'Giant Bird',     icon: '\u{1F985}', color: '#EF4444', border: '#EF4444', apply: s => { s.birdScale *= 1.35 } },
+  { name: 'Lower Ceiling',  icon: '\u{2B07}\u{FE0F}', color: '#8B5CF6', border: '#8B5CF6', apply: s => { s.ceilOffset += 60 } },
+  { name: 'Extra Fruit',    icon: '\u{1F34A}', color: '#EC4899', border: '#EC4899', apply: s => { s.extraTypes += 2 } },
+  { name: 'Ice Tiles',      icon: '\u{2744}\u{FE0F}', color: '#0891B2', border: '#0891B2', apply: s => { s.frozenTiles = true } },
+  { name: 'Faster Rise',    icon: '\u{23E9}', color: '#FACC15', border: '#FACC15', apply: s => { s.speedMul *= 1.3 } },
   { name: 'Tiny Tiles',     icon: '\u{1F538}', color: '#34D399', border: '#34D399', apply: s => { s.tinyTiles = true } },
 ];
 
@@ -569,7 +569,7 @@ function measure() {
   const rect = cage.getBoundingClientRect();
   S.cageH = rect.height;
   S.cageW = rect.width;
-  S.cols = S.tinyTiles ? 8 : 7;
+  S.cols = S.tinyTiles ? 9 : 7;
   const avail = S.cageW - WALL_W * 2;
   S.cellSize = (avail - (S.cols - 1) * HGAP) / S.cols;
   S.speedScale = S.cageH / 700; // normalize speed for screen height
@@ -704,7 +704,7 @@ function initGrid() {
   const types = cfg.types + S.extraTypes;
   // Tiny Tiles: more cols → scale rows to keep ~same total tile count
   const baseTiles = cfg.rows * 7;
-  S.totalRows = S.tinyTiles ? Math.round(baseTiles / S.cols) : cfg.rows;
+  S.totalRows = cfg.rows;
   // Ensure total tile count is divisible by 3 so every tile can be matched
   while ((S.totalRows * S.cols) % 3 !== 0) S.totalRows++;
   const total = S.totalRows * S.cols;
@@ -730,7 +730,7 @@ function initGrid() {
       }
     }
     shuffle(positions);
-    const frozenCount = Math.floor(S.totalRows * S.cols * 0.2);
+    const frozenCount = Math.floor(S.totalRows * S.cols * 0.25);
     for (let i = 0; i < Math.min(frozenCount, positions.length); i++) {
       S.grid[positions[i].r][positions[i].c].frozen = true;
     }
@@ -923,7 +923,7 @@ function updateBird(dt) {
   // When frantic, bird flees upward — centers visual body between spikes at loss
   const panicking = mood === 'frantic';
   if (panicking) {
-    // With tight viewBox, visual center ≈ 50% of bh; center that in the gap
+    // Center bird in gap — split any overlap equally between top and bottom spikes
     S.birdTargetY = ceilBot + free / 2 - bh * 0.5;
   }
 
@@ -932,9 +932,9 @@ function updateBird(dt) {
   const vDiff = S.birdTargetY - S.birdY;
   S.birdY += Math.sign(vDiff) * Math.min(Math.abs(vDiff), vSpeed * (dt / 1000));
 
-  // Smooth vertical bounds (relaxed during panic to let bird overlap spike whitespace)
-  const maxY = ceilBot + freeH;
-  const minY = panicking ? ceilBot - bh * 0.25 : ceilBot + 2;
+  // Smooth vertical bounds — when panicking, center in gap (symmetric overlap)
+  const maxY = panicking ? ceilBot + free / 2 - bh * 0.5 + bh * 0.05 : ceilBot + freeH;
+  const minY = panicking ? ceilBot + free / 2 - bh * 0.5 - bh * 0.05 : ceilBot + 2;
   if (S.birdY > maxY) S.birdY += (maxY - S.birdY) * 0.15;
   if (S.birdY < minY) S.birdY += (minY - S.birdY) * 0.15;
 
@@ -994,7 +994,7 @@ function findCellPos(id) {
 function tapTile(row, col) {
   if (S.phase !== 'playing') return;
   // Block input when death is imminent — prevents last-second clears that can't resolve
-  if (S.rising && !S.cascading && getFreeSpace() < getBirdH() * (DEATH_GAP + 0.1)) return;
+  if (S.rising && !S.cascading && getFreeSpace() < getBirdH() * (DEATH_GAP + 0.02)) return;
   const cell = S.grid[row]?.[col];
   if (!cell) return;
 
@@ -1113,7 +1113,7 @@ function doMatch() {
         roundComplete();
       }
     });
-  }, 500); // matches tilePop animation duration
+  }, 380); // matches tilePop animation duration
 }
 
 // ===== PARTICLES =====
@@ -1344,9 +1344,9 @@ function gameLoop(ts) {
       // Rubber-banding (bird-height relative for consistent feel across screens)
       const free = getFreeSpace();
       const bh = getBirdH();
-      if (free < bh * 1.2) speed *= 0.5;
-      else if (free < bh * 2) speed *= 0.7;
-      else if (free > bh * 4) speed *= 1.18;
+      if (free < bh * 1.1) speed *= 0.7;
+      else if (free < bh * 1.8) speed *= 0.85;
+      else if (free > bh * 3.5) speed *= 1.25;
 
       S.visiblePx += speed * (dt / 1000);
     }
@@ -2076,6 +2076,14 @@ const G = {
       }
     });
     document.addEventListener('pointerup', () => { S._pressedTile = null; });
+    // Treat pointercancel as a tap (browser may cancel on slight finger movement)
+    cage.addEventListener('pointercancel', () => {
+      if (S._pressedTile) {
+        const { row, col } = S._pressedTile;
+        S._pressedTile = null;
+        tapTile(row, col);
+      }
+    });
 
     // Prevent double-tap zoom on mobile
     let _lastTap = 0;
