@@ -7,7 +7,7 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,'SF Pro Rounded',system-ui,sans-serif;background:#0a1a0a;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Fredoka',-apple-system,'SF Pro Rounded',system-ui,sans-serif;background:#0a1a0a;touch-action:manipulation;user-select:none;-webkit-user-select:none}
 body{height:100%;padding:0}
 
 /* ---- GAME CONTAINER ---- */
@@ -1080,12 +1080,13 @@ function tapTile(row, col) {
   SFX.select(S.selected.length);
 
   // Check for match (defer if cascade in progress)
-  if (S.selected.length === 3 && !S.cascading) {
+  if (S.selected.length === 3 && !S.cascading && !S._matchPending) {
     doMatch();
   }
 }
 
 function doMatch() {
+  S._matchPending = true;
   const selIds = [...S.selected];
   S.selected = [];
 
@@ -1126,6 +1127,7 @@ function doMatch() {
     S.cascading = true;
     runCascade().then(() => {
       S.cascading = false;
+      S._matchPending = false;
       if (S.phase !== 'playing') return; // game ended during cascade
       // Fire deferred match if 3 tiles were selected during cascade
       if (S.selected.length === 3) {
@@ -1405,6 +1407,7 @@ async function startRound() {
   S.phase = 'playing';
   S.rising = S.round > 0; // Round 2+ starts automatically
   S.cascading = false;
+  S._matchPending = false;
   S.selected = [];
   S.birdMood = 'calm';
   S.lastTs = 0;
