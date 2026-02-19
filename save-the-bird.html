@@ -17,7 +17,7 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 #topPlank{height:48px;flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:10px;padding:0 16px;background:linear-gradient(180deg,#C4813A 0%,#A0581E 25%,#7A3A0E 65%,#4E2106 100%);box-shadow:0 4px 8px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,220,140,0.35),inset 0 -1px 0 rgba(0,0,0,0.4);z-index:20;position:relative}
 #roundBadge{font-family:'Fredoka',-apple-system,'SF Pro Rounded',system-ui,sans-serif;color:#fff;font-size:22px;font-weight:600;line-height:1;letter-spacing:0.06em;text-shadow:0 1px 3px rgba(20,8,0,0.85),0 0 12px rgba(255,200,80,0.25);white-space:nowrap}
 #modBadges{display:flex;gap:6px}
-.mod-badge{width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid transparent;animation:modPop 0.3s cubic-bezier(0.34,1.56,0.64,1)}
+.mod-badge{width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid rgba(255,255,255,0.5);animation:modPop 0.3s cubic-bezier(0.34,1.56,0.64,1)}
 @keyframes modPop{0%{transform:scale(0)}100%{transform:scale(1)}}
 
 /* ---- CAGE ---- */
@@ -61,6 +61,13 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 @keyframes wingCalm{0%,100%{transform:scaleY(1)}50%{transform:scaleY(0.85) rotate(-3deg)}}
 @keyframes wingWorried{0%,100%{transform:scaleY(1)}50%{transform:scaleY(0.78) rotate(-5deg)}}
 @keyframes wingFrantic{0%,100%{transform:scaleY(1)}50%{transform:scaleY(0.72) rotate(-8deg)}}
+/* ---- BIRD DISTRESS (tear + wing flutter) ---- */
+@keyframes tearDrop{0%{opacity:0;transform:translateY(0) scale(0.7)}10%{opacity:1;transform:translateY(0) scale(1)}75%{opacity:1;transform:translateY(18px) scale(1,1.15)}100%{opacity:0;transform:translateY(22px) scale(0.8,1.3)}}
+.bird-tear{opacity:0;pointer-events:none;transform-box:fill-box;transform-origin:50% 0%}
+.bird-tear.active{animation:tearDrop 1.6s ease-in forwards}
+@keyframes wingDistress{0%{transform:scaleY(1) rotate(0deg)}12%{transform:scaleY(0.6) rotate(-12deg)}25%{transform:scaleY(1) rotate(2deg)}37%{transform:scaleY(0.6) rotate(-12deg)}50%{transform:scaleY(1) rotate(2deg)}62%{transform:scaleY(0.6) rotate(-12deg)}75%{transform:scaleY(1) rotate(2deg)}87%{transform:scaleY(0.6) rotate(-12deg)}100%{transform:scaleY(1) rotate(0deg)}}
+#birdWrap.distress-flutter .wing-flap{animation:wingDistress 0.6s ease-in-out forwards!important}
+
 #birdWrap.hop .bird-svg{animation:birdHop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards}
 @keyframes birdHop{0%{transform:translateY(0) scale(1,1)}15%{transform:translateY(0) scale(1.08,0.92)}30%{transform:translateY(-18px) scale(0.95,1.08)}50%{transform:translateY(-24px) scale(1,1)}70%{transform:translateY(-10px)}85%{transform:translateY(0) scale(1.06,0.94)}100%{transform:translateY(0) scale(1,1)}}
 #birdWrap.exhale .bird-svg{animation:birdExhale 0.6s ease-out forwards}
@@ -74,7 +81,7 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 #spikePlank{height:8px;background:linear-gradient(180deg,#B8722E 0%,#8C4A14 50%,#5C2A08 100%);box-shadow:inset 0 1px 0 rgba(255,210,120,0.25),inset 0 -1px 0 rgba(0,0,0,0.35)}
 #spikeBarUp{display:flex;position:absolute;top:calc(-1 * var(--ssh,50px));left:0;right:0}
 .sb-up{flex:1 0 0;height:var(--ssh,50px);background:#A8C0D0;clip-path:polygon(50% 0,0 100%,100% 100%);position:relative}
-#tileContainer{position:relative}
+#tileContainer{position:relative;contain:layout style}
 
 /* ---- HYDRAULIC PRESS ---- */
 #hydraulicPress{position:relative;width:100%}
@@ -144,17 +151,18 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 @keyframes screenShake{0%,100%{transform:translateX(0)}10%{transform:translate(-8px,4px)}20%{transform:translate(7px,-3px)}30%{transform:translate(-5px,6px)}40%{transform:translate(6px,-5px)}50%{transform:translate(-4px,3px)}60%{transform:translate(3px,-2px)}70%{transform:translate(-2px,4px)}80%{transform:translate(2px,-1px)}90%{transform:translate(-1px,1px)}}
 
 /* ---- CTA ---- */
-#cta{position:absolute;z-index:15;left:50%;bottom:18%;transform:translateX(-50%);text-align:center;pointer-events:none;transition:opacity 0.5s ease-out}
+#cta{position:absolute;z-index:15;left:50%;bottom:26%;transform:translateX(-50%);text-align:center;pointer-events:none;transition:opacity 0.5s ease-out;white-space:nowrap}
 #cta.hidden{opacity:0;pointer-events:none}
-#ctaText{font-size:16px;font-weight:700;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,0.5);letter-spacing:0.5px;margin-bottom:4px}
-#ctaText2{font-size:18px;font-weight:800;color:#FACC15;text-shadow:0 1px 4px rgba(0,0,0,0.5);margin-bottom:8px}
+#ctaText{font-family:'Fredoka',-apple-system,'SF Pro Rounded',system-ui,sans-serif;font-size:clamp(22px,5.5vw,28px);font-weight:600;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,0.5),0 0 12px rgba(255,200,80,0.2);letter-spacing:0.06em;margin-bottom:6px;text-transform:uppercase}
+#ctaText2{font-family:'Fredoka',-apple-system,'SF Pro Rounded',system-ui,sans-serif;font-size:clamp(26px,6.5vw,32px);font-weight:600;color:#FACC15;text-shadow:0 2px 6px rgba(0,0,0,0.5),0 0 14px rgba(255,200,80,0.3);letter-spacing:0.06em;margin-bottom:12px;text-transform:uppercase}
 #ctaArrow{animation:ctaBounce 0.8s ease-in-out infinite}
-@keyframes ctaBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+#ctaArrow svg{width:clamp(32px,9vw,42px);height:auto}
+@keyframes ctaBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
 
 /* ---- OVERLAYS ---- */
 .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity 0.4s}
 .overlay.active{opacity:1;pointer-events:all}
-.overlay-bg{position:absolute;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.overlay-bg{position:absolute;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
 .overlay-content{position:relative;text-align:center;padding:32px 28px;max-width:320px}
 .overlay-emoji{font-size:60px;margin-bottom:16px;animation:pop 0.5s cubic-bezier(0.34,1.56,0.64,1)}
 @keyframes pop{0%{transform:scale(0)}100%{transform:scale(1)}}
@@ -167,18 +175,18 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 
 /* ---- WHEEL ---- */
 #wheelOverlay .overlay-bg{background:rgba(0,0,0,0.8)}
-#wheelOverlay .overlay-content{max-width:360px;padding:20px;display:flex;flex-direction:column;align-items:center;height:min(520px,85vh)}
+#wheelOverlay .overlay-content{max-width:400px;padding:20px;display:flex;flex-direction:column;align-items:center;height:min(560px,88vh)}
 #wheelTitle{font-size:20px;font-weight:800;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,0.5);margin-bottom:min(20px,2.5vh);letter-spacing:0.5px;flex-shrink:0}
-#wheelWrap{position:relative;width:min(240px,62vw);height:min(240px,62vw);margin:0 auto min(20px,2.5vh);flex-shrink:0}
+#wheelWrap{position:relative;width:min(300px,75vw);height:min(300px,75vw);margin:0 auto min(20px,2.5vh);flex-shrink:0}
 #wheel{width:100%;height:100%;border-radius:50%;border:5px solid rgba(255,255,255,0.25);will-change:transform;box-shadow:0 0 20px rgba(0,0,0,0.3),inset 0 0 10px rgba(0,0,0,0.15)}
 #wheelPointer{position:absolute;top:-14px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:28px solid #FACC15;z-index:2;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4))}
-.wheel-icon{position:absolute;top:50%;left:50%;pointer-events:none;font-size:28px;line-height:1;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.85);border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3)}
+.wheel-icon{position:absolute;top:50%;left:50%;pointer-events:none;font-size:36px;line-height:1;width:48px;height:48px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5))}
 #wheelResult{text-align:center;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%}
 #wheelResultName{font-size:26px;font-weight:800;color:#FACC15;margin-bottom:8px;opacity:0;transform:translateY(20px);transition:all 0.3s ease-out}
 #wheelResultDesc{font-size:15px;color:rgba(255,255,255,0.75);margin-bottom:16px;opacity:0;transition:opacity 0.3s ease-out 0.15s;display:none}
 #wheelResultName.show,#wheelResultDesc.show{opacity:1;transform:translateY(0)}
-#wheelBtns{display:flex;gap:10px;justify-content:center;opacity:0;transition:opacity 0.3s ease-out 0.3s;flex-shrink:0}
-#wheelBtns.show{opacity:1}
+#wheelBtns{display:flex;gap:10px;justify-content:center;opacity:0;transition:opacity 0.3s ease-out 0.3s;flex-shrink:0;pointer-events:none}
+#wheelBtns.show{opacity:1;pointer-events:auto}
 .btn-sm{padding:13px 30px;border-radius:22px;font-size:15px;font-weight:700;font-family:inherit;border:none;cursor:pointer;transition:transform 0.12s;min-width:120px}
 .btn-sm:active{transform:scale(0.95)}
 .btn-continue{background:linear-gradient(135deg,#4ADE80,#22C55E);color:#fff;box-shadow:0 3px 10px rgba(34,197,94,0.4)}
@@ -285,10 +293,6 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
         <line x1="24" y1="50" x2="18" y2="50" stroke="#D48820" stroke-width="0.8"/>
         <ellipse cx="28" cy="52" rx="5" ry="3" fill="#F4A0A0" opacity="0.5"/>
         <polygon points="72,42 85,34 82,44 85,48 72,50" fill="#7A4422"/>
-        <g fill="#E8923E" stroke="#C07020" stroke-width="0.8">
-          <path d="M40,75 L38,82 L34,82 M38,82 L38,84 M38,82 L42,82"/>
-          <path d="M52,75 L54,82 L50,82 M54,82 L54,84 M54,82 L58,82"/>
-        </g>
         <ellipse cx="42" cy="30" rx="3" ry="5" fill="#8B4022" transform="rotate(-15,42,30)"/>
         <ellipse cx="46" cy="29" rx="2.5" ry="4" fill="#7A3518" transform="rotate(5,46,29)"/>
         <defs>
@@ -301,9 +305,9 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
     </div>
     <div id="cta">
       <div id="ctaText">Tap 3 matching fruits!</div>
-      <div id="ctaText2">Save the Bird!</div>
+      <div id="ctaText2">Save the bird!</div>
       <div id="ctaArrow">
-        <svg width="24" height="14" viewBox="0 0 24 14"><polyline points="2,2 12,12 22,2" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/></svg>
+        <svg viewBox="0 0 24 14"><polyline points="2,2 12,12 22,2" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/></svg>
       </div>
     </div>
     <div id="stack">
@@ -387,8 +391,8 @@ body{height:100dvh;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(s
 
 <script>
 // ===== CONFIG & CONSTANTS =====
-const ICONS = ['\u{1F34E}','\u{1F347}','\u{1F95D}','\u{1F34C}','\u{1F965}','\u{1F351}','\u{1F34A}','\u{1F353}','\u{1F352}','\u{1F349}','\u{1F34D}','\u{1F96D}'];
-const ICON_COLORS = ['#EF4444','#8B5CF6','#22C55E','#FACC15','#F5F0E0','#FBBD8B','#F97316','#EC4899','#DC2626','#22C55E','#EAB308','#F59E0B'];
+const ICONS = ['\u{1F34E}','\u{1F347}','\u{1F95D}','\u{1FAD0}','\u{1F965}','\u{1F351}','\u{1F34A}','\u{1F353}','\u{1F352}','\u{1F349}','\u{1F34D}','\u{1F96D}'];
+const ICON_COLORS = ['#EF4444','#8B5CF6','#22C55E','#4F46E5','#F5F0E0','#FBBD8B','#F97316','#EC4899','#DC2626','#22C55E','#EAB308','#F59E0B'];
 const HGAP = 1;
 const VGAP = 3;
 const PLANK_H = 8;
@@ -425,7 +429,6 @@ const BIRD_SVGS = [
 <polygon points="26,47 20,50 26,53" fill="#F4A030"/><line x1="26" y1="50" x2="20" y2="50" stroke="#D48820" stroke-width="0.8"/>
 <ellipse cx="30" cy="52" rx="4" ry="2.5" fill="#F4A0A0" opacity="0.5"/>
 <polygon points="68,44 76,38 74,46 76,50 68,50" fill="#7A4422"/>
-<g fill="#E8923E" stroke="#C07020" stroke-width="0.8"><path d="M40,75 L38,82 L34,82 M38,82 L38,84 M38,82 L42,82"/><path d="M52,75 L54,82 L50,82 M54,82 L54,84 M54,82 L58,82"/></g>
 <defs><radialGradient id="bGrad" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#F06850" stop-opacity="0.6"/><stop offset="100%" stop-color="#C83828" stop-opacity="0.3"/></radialGradient></defs>`,
 
   // Round 2: Green Owl — round compact body, huge owl eyes, short ear tufts, no tail
@@ -446,7 +449,6 @@ const BIRD_SVGS = [
 <ellipse cx="53" cy="50" rx="3.5" ry="2" fill="#86EFAC" opacity="0.35"/>
 <polygon points="32,28 28,18 36,24" fill="#16A34A" stroke="#15803D" stroke-width="0.6"/><polygon points="34,27 30,16 38,22" fill="#22C55E" opacity="0.7"/>
 <polygon points="56,28 60,18 52,24" fill="#16A34A" stroke="#15803D" stroke-width="0.6"/><polygon points="54,27 58,16 50,22" fill="#22C55E" opacity="0.7"/>
-<g fill="#D97706" stroke="#92400E" stroke-width="0.8"><path d="M40,80 L38,85 L35,84 M38,85 L38,87 M38,85 L41,84"/><path d="M52,80 L54,85 L51,84 M54,85 L54,87 M54,85 L57,84"/></g>
 <defs><radialGradient id="bGrad" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#4ADE80" stop-opacity="0.5"/><stop offset="100%" stop-color="#15803D" stop-opacity="0.3"/></radialGradient></defs>`,
 
   // Round 3: Yellow Canary — tiny and plump, big round head, minimal tail
@@ -459,7 +461,6 @@ const BIRD_SVGS = [
 <polygon points="24,43 17,45 24,48" fill="#F97316"/><line x1="24" y1="45.5" x2="17" y2="45" stroke="#C2410C" stroke-width="0.8"/>
 <ellipse cx="28" cy="48" rx="3.5" ry="2" fill="#FDE68A" opacity="0.5"/>
 <polygon points="68,48 74,44 73,50 68,52" fill="#CA8A04"/>
-<g fill="#D97706" stroke="#92400E" stroke-width="0.8"><path d="M42,75 L40,82 L36,82 M40,82 L40,84 M40,82 L44,82"/><path d="M54,75 L56,82 L52,82 M56,82 L56,84 M56,82 L60,82"/></g>
 <defs><radialGradient id="bGrad" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#FDE047" stop-opacity="0.5"/><stop offset="100%" stop-color="#A16207" stop-opacity="0.3"/></radialGradient></defs>`,
 
   // Round 4: Blue Macaw — largest bird, prominent curved beak, long dramatic tail, head crest
@@ -477,7 +478,6 @@ const BIRD_SVGS = [
 <ellipse cx="26" cy="14" rx="2.5" ry="6" fill="#2563EB" transform="rotate(-5,26,14)"/>
 <ellipse cx="34" cy="12" rx="2" ry="4" fill="#60A5FA" transform="rotate(20,34,12)"/>
 <polygon points="72,38 96,22 94,34 98,40 96,48 72,48" fill="#1D4ED8"/><polygon points="72,48 96,50 94,56 96,66 72,56" fill="#EF4444"/><polygon points="72,56 92,62 90,68 72,62" fill="#1D4ED8" opacity="0.7"/>
-<g fill="#4B5563" stroke="#374151" stroke-width="0.8"><path d="M36,78 L34,84 L30,84 M34,84 L34,86 M34,84 L38,84"/><path d="M52,78 L54,84 L50,84 M54,84 L54,86 M54,84 L58,84"/></g>
 <defs><radialGradient id="bGrad" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#60A5FA" stop-opacity="0.5"/><stop offset="100%" stop-color="#1E40AF" stop-opacity="0.3"/></radialGradient></defs>`,
 
   // Round 5: Orange Toucan — medium body, very large distinctive beak, short tail
@@ -493,17 +493,16 @@ const BIRD_SVGS = [
 <path d="M10,40 L10,48" fill="none" stroke="#1a1a2e" stroke-width="0.8" opacity="0.6"/>
 <ellipse cx="30" cy="46" rx="4" ry="2.5" fill="#FDBA74" opacity="0.4"/>
 <polygon points="72,46 80,42 78,48 80,52 72,52" fill="#0f0f23"/>
-<g fill="#4B5563" stroke="#1E293B" stroke-width="0.8"><path d="M44,75 L42,82 L38,82 M42,82 L42,84 M42,82 L46,82"/><path d="M56,75 L58,82 L54,82 M58,82 L58,84 M58,82 L62,82"/></g>
 <defs><radialGradient id="bGrad" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#334155" stop-opacity="0.4"/><stop offset="100%" stop-color="#0f172a" stop-opacity="0.3"/></radialGradient></defs>`,
 ];
 
 // ===== BIRD VIEWBOX DATA (tight crop so all birds fill their element equally) =====
 const BIRD_VB = [
-  { vb: '17 25 62 62', aspect: 1.0,    bodyFrac: 1.0  },  // Robin: compact, square
-  { vb: '16 12 64 78', aspect: 64/78,  bodyFrac: 1.0  },  // Owl: round compact, ear tufts
-  { vb: '10 21 67 66', aspect: 67/66,  bodyFrac: 1.0  },  // Canary: small round, near-square
-  { vb: '1 2 100 87', aspect: 100/87,  bodyFrac: 0.75 },  // Blue Macaw: tail ~25% overhang
-  { vb: '-5 20 88 67', aspect: 88/67,  bodyFrac: 0.70 },  // Toucan: beak ~30% overhang
+  { vb: '17 25 62 52', aspect: 62/52,  bodyFrac: 1.0  },  // Robin: no legs, body ends ~y77
+  { vb: '16 12 64 70', aspect: 64/70,  bodyFrac: 1.0  },  // Owl: no legs, body ends ~y82
+  { vb: '10 21 67 54', aspect: 67/54,  bodyFrac: 1.0  },  // Canary: no legs, body ends ~y75
+  { vb: '1 2 100 79', aspect: 100/79,  bodyFrac: 0.75 },  // Blue Macaw: no legs, body ends ~y81
+  { vb: '-5 20 88 56', aspect: 88/56,  bodyFrac: 0.70 },  // Toucan: no legs, body ends ~y76
 ];
 
 // ===== STATE =====
@@ -835,7 +834,30 @@ function updateBird(dt) {
   if (ratio > 0.7) mood = 'frantic';
   if (S.birdMood !== mood && !S.cascading) {
     S.birdMood = mood;
+    const hasFlutter = birdWrap.classList.contains('distress-flutter');
     birdWrap.className = mood;
+    if (hasFlutter) birdWrap.classList.add('distress-flutter');
+  }
+
+  // Distress behaviors (tear + wing flutter, not during frantic)
+  if (mood !== 'frantic' && dt > 0) {
+    S._tearTimer -= dt / 1000;
+    if (S._tearTimer <= 0) {
+      S._tearTimer = 5 + Math.random() * 3;
+      const tear = birdSvg.querySelector('.bird-tear');
+      if (tear) {
+        tear.classList.remove('active');
+        void tear.getBBox(); // reflow
+        tear.classList.add('active');
+        setTimeout(() => tear.classList.remove('active'), 1700);
+      }
+    }
+    S._flutterTimer -= dt / 1000;
+    if (S._flutterTimer <= 0) {
+      S._flutterTimer = 6 + Math.random() * 4;
+      birdWrap.classList.add('distress-flutter');
+      setTimeout(() => birdWrap.classList.remove('distress-flutter'), 650);
+    }
   }
 
   // Eye tracking — only update when mood changes
@@ -1365,11 +1387,25 @@ async function startRound() {
   S.birdDir = -1;
   S.birdTargetY = 0;
   S.stackBounceOffset = 0;
+  S._tearTimer = 5 + Math.random() * 3;
+  S._flutterTimer = 6 + Math.random() * 4;
   birdSvg.style.transform = '';
 
   // Set bird SVG for this round (tight viewBox so all birds appear same height)
   const birdIdx = Math.min(S.round, BIRD_SVGS.length - 1);
   birdSvg.innerHTML = BIRD_SVGS[birdIdx];
+  // Add teardrop element for distress animation
+  const tearG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  tearG.setAttribute('class', 'bird-tear');
+  tearG.innerHTML = `<path d="M34,48 C33.5,50.5 31.5,52.5 31.5,54 C31.5,55.5 32.6,56.5 34,56.5 C35.4,56.5 36.5,55.5 36.5,54 C36.5,52.5 34.5,50.5 34,48 Z" fill="#7DD3FC"/><ellipse cx="33.2" cy="53.8" rx="1" ry="1.3" fill="#fff" opacity="0.6"/>`;
+  birdSvg.appendChild(tearG);
+  // Position tear relative to this bird's eye (path drawn for Robin eye at 34,41)
+  const _tearPupil = birdSvg.querySelector('#birdPupil');
+  if (_tearPupil) {
+    const dx = (+_tearPupil.getAttribute('cx')) - 34;
+    const dy = (+_tearPupil.getAttribute('cy')) - 41;
+    if (dx !== 0 || dy !== 0) tearG.setAttribute('transform', `translate(${dx},${dy})`);
+  }
   const vbData = BIRD_VB[birdIdx];
   birdSvg.setAttribute('viewBox', vbData.vb);
   S.birdAspect = vbData.aspect;
@@ -1530,9 +1566,10 @@ async function roundCelebration() {
   // Flying right (flyDir=1) = beak points right = scaleX(-1)
   const flip = flyDir > 0 ? ' scaleX(-1)' : '';
 
-  // First: turn to face exit direction
-  birdWrap.style.transition = 'transform 0.15s ease-out';
+  // First: turn to face exit direction (instant flip to avoid scaleX(0) squish)
+  birdWrap.style.transition = 'none';
   birdWrap.style.transform = `translate(${S.birdX}px, ${S.birdY}px)${flip}`;
+  birdWrap.offsetHeight; // force commit before transition
   await sleep(150);
 
   // Spawn heart particles ahead of bird flight direction
@@ -1571,6 +1608,7 @@ async function roundCelebration() {
 // ===== WHEEL OF FORTUNE =====
 async function showWheel() {
   S.phase = 'wheel';
+  S._wheelDone = false;
   const segs = S.remainingMods;
   const segAngle = 360 / segs.length;
 
@@ -1581,7 +1619,7 @@ async function showWheel() {
   ).join(', ');
   wheel.style.background = `conic-gradient(${stops})`;
   wheel.innerHTML = '';
-  const wheelSize = Math.min(240, parseInt(getComputedStyle($('wheelWrap')).width) || 240);
+  const wheelSize = Math.min(300, parseInt(getComputedStyle($('wheelWrap')).width) || 300);
   const radius = wheelSize / 2 * 0.6;
   segs.forEach((seg, i) => {
     const icon = document.createElement('div');
@@ -1592,7 +1630,7 @@ async function showWheel() {
     const x = Math.sin(rad) * radius;
     const y = -Math.cos(rad) * radius;
     // Rotate icon so it reads upright when its segment is at top (pointer position)
-    icon.style.transform = `translate(${x - 20}px, ${y - 20}px) rotate(${angle}deg)`;
+    icon.style.transform = `translate(${x - 24}px, ${y - 24}px) rotate(${angle}deg)`;
     wheel.appendChild(icon);
   });
 
@@ -1652,6 +1690,7 @@ async function showWheel() {
   // Show confirmation buttons
   await sleep(400);
   $('wheelBtns').classList.add('show');
+  S._wheelDone = true;
   // Player must click Continue or Start Over
 }
 
@@ -1662,7 +1701,6 @@ function renderModBadges() {
     const badge = document.createElement('div');
     badge.className = 'mod-badge';
     badge.textContent = mod.icon;
-    badge.style.borderColor = mod.border;
     badge.title = mod.name;
     container.appendChild(badge);
   });
@@ -1772,14 +1810,10 @@ function spawnConfetti(count, useFruit) {
   }
 }
 
-// ===== AUDIO =====
-// Natural-sounding synthesis using sine waves with bell-like partials.
-// To replace with real samples: embed base64 MP3 strings and use _playSample().
-// Recommended CC0 sources: Freesound.org IDs 734249, 449955, 60007, 419492, 456965
+// ===== AUDIO (pre-rendered PCM buffers — no real-time synthesis during gameplay) =====
 const SFX = {
   ctx: null,
-  master: null,
-  reverb: null,
+  _b: {},         // pre-rendered AudioBuffers
   _unlocked: false,
   _clearIdx: 0,
   _lastClearT: 0,
@@ -1787,39 +1821,12 @@ const SFX = {
 
   init() {
     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    this.master = this.ctx.createGain();
-    this.master.gain.value = 0.45;
-    // Small reverb via convolver for natural feel
-    this.dry = this.ctx.createGain();
-    this.wet = this.ctx.createGain();
-    this.dry.gain.value = 0.8;
-    this.wet.gain.value = 0.2;
-    this._createReverb();
-    this.dry.connect(this.ctx.destination);
-    this.wet.connect(this.ctx.destination);
-    this.master.connect(this.dry);
-    this._initSamples();
-  },
-
-  _createReverb() {
-    // Simple impulse response for short room reverb
-    const len = Math.ceil(this.ctx.sampleRate * 0.3);
-    const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) {
-      d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 0.08));
-    }
-    this.reverb = this.ctx.createConvolver();
-    this.reverb.buffer = buf;
-    this.master.connect(this.reverb);
-    this.reverb.connect(this.wet);
+    this._gen();
   },
 
   unlock() {
     if (!this.ctx) this.init();
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
-    }
+    if (this.ctx.state === 'suspended') this.ctx.resume();
     if (!this._unlocked) {
       const buf = this.ctx.createBuffer(1, 1, this.ctx.sampleRate);
       const src = this.ctx.createBufferSource();
@@ -1830,245 +1837,191 @@ const SFX = {
     }
   },
 
-  // Bell-like tone with inharmonic partials (sounds natural, not arcade)
-  _bell(freq, start, dur, vol = 0.12) {
-    if (!this.ctx) return;
-    const t = this.ctx.currentTime + start;
-    const partials = [1.0, 2.76, 5.4, 8.93];
-    const gains = [1.0, 0.4, 0.15, 0.06];
-    partials.forEach((ratio, i) => {
-      const o = this.ctx.createOscillator();
-      const g = this.ctx.createGain();
-      o.type = 'sine';
-      o.frequency.value = freq * ratio;
-      // Slight detune for warmth
-      o.detune.value = (Math.random() - 0.5) * 6;
-      g.gain.setValueAtTime(vol * gains[i], t);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dur * (1 - i * 0.15));
-      o.connect(g);
-      g.connect(this.master);
-      o.start(t);
-      o.stop(t + dur + 0.05);
+  // --- PCM helpers (run once at init, generate all AudioBuffers) ---
+  _pcm(dur, fn) {
+    const sr = this.ctx.sampleRate;
+    const n = Math.ceil(sr * dur);
+    const buf = this.ctx.createBuffer(1, n, sr);
+    const d = buf.getChannelData(0);
+    fn(d, sr, n);
+    return buf;
+  },
+
+  _addSine(d, sr, freq, start, dur, vol, decayT) {
+    const s = Math.floor(start * sr), len = Math.ceil(dur * sr);
+    for (let i = 0; i < len && s + i < d.length; i++) {
+      const t = i / sr;
+      d[s + i] += Math.sin(2 * Math.PI * freq * t) * vol * Math.exp(-t / decayT);
+    }
+  },
+
+  _addTri(d, sr, freq, start, dur, vol, decayT) {
+    const s = Math.floor(start * sr), len = Math.ceil(dur * sr);
+    for (let i = 0; i < len && s + i < d.length; i++) {
+      const t = i / sr;
+      const phase = (freq * t) % 1;
+      d[s + i] += (4 * Math.abs(phase - 0.5) - 1) * vol * Math.exp(-t / decayT);
+    }
+  },
+
+  _addBell(d, sr, freq, start, dur, vol) {
+    const P = [1.0, 2.76, 5.4, 8.93], G = [1.0, 0.4, 0.15, 0.06];
+    P.forEach((ratio, i) => {
+      const f = freq * ratio * (1 + (Math.random() - 0.5) * 0.005);
+      this._addSine(d, sr, f, start, dur * (1 - i * 0.15), vol * G[i], dur * 0.35 * (1 - i * 0.1));
     });
   },
 
-  // Soft chime — single sine with gentle attack
-  _chime(freq, start, dur, vol = 0.1) {
-    if (!this.ctx) return;
-    const t = this.ctx.currentTime + start;
-    const o = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    o.type = 'sine';
-    o.frequency.value = freq;
-    o.detune.value = (Math.random() - 0.5) * 4;
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(vol, t + 0.008);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g);
-    g.connect(this.master);
-    o.start(t);
-    o.stop(t + dur + 0.05);
-  },
-
-  // Pre-generate reusable noise buffers
-  _initSamples() {
-    // Short click buffer (wheel ticks, tile select)
-    const clickLen = Math.ceil(this.ctx.sampleRate * 0.015);
-    this._clickBuf = this.ctx.createBuffer(1, clickLen, this.ctx.sampleRate);
-    const cd = this._clickBuf.getChannelData(0);
-    for (let i = 0; i < clickLen; i++) cd[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 0.003));
-    // Medium noise buffer (sparkles, swooshes — 200ms)
-    const medLen = Math.ceil(this.ctx.sampleRate * 0.2);
-    this._noiseBuf = this.ctx.createBuffer(1, medLen, this.ctx.sampleRate);
-    const nd = this._noiseBuf.getChannelData(0);
-    for (let i = 0; i < medLen; i++) nd[i] = Math.random() * 2 - 1;
-  },
-
-  // Filtered noise burst (reuses cached buffer for short durations)
-  _noise(start, dur, vol = 0.06, freq = 800, q = 3) {
-    if (!this.ctx) return;
-    const t = this.ctx.currentTime + start;
-    let src;
-    if (dur <= 0.2 && this._noiseBuf) {
-      src = this.ctx.createBufferSource();
-      src.buffer = this._noiseBuf;
-    } else {
-      const buf = this.ctx.createBuffer(1, Math.ceil(this.ctx.sampleRate * dur), this.ctx.sampleRate);
-      const d = buf.getChannelData(0);
-      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-      src = this.ctx.createBufferSource();
-      src.buffer = buf;
+  _addNoise(d, sr, start, dur, vol, decayT) {
+    const s = Math.floor(start * sr), len = Math.ceil(dur * sr);
+    for (let i = 0; i < len && s + i < d.length; i++) {
+      const t = i / sr;
+      d[s + i] += (Math.random() * 2 - 1) * vol * Math.exp(-t / (decayT || dur * 0.3));
     }
-    const f = this.ctx.createBiquadFilter();
-    f.type = 'bandpass';
-    f.frequency.value = freq;
-    f.Q.value = q;
+  },
+
+  _addChime(d, sr, freq, start, dur, vol) {
+    const s = Math.floor(start * sr), len = Math.ceil(dur * sr);
+    const attackLen = Math.ceil(0.008 * sr);
+    for (let i = 0; i < len && s + i < d.length; i++) {
+      const t = i / sr;
+      const env = i < attackLen ? (i / attackLen) : Math.exp(-(t - 0.008) / (dur * 0.35));
+      d[s + i] += Math.sin(2 * Math.PI * freq * t) * vol * env;
+    }
+  },
+
+  _addSweep(d, sr, startFreq, endFreq, start, dur, vol, type) {
+    const s = Math.floor(start * sr), len = Math.ceil(dur * sr);
+    let phase = 0;
+    for (let i = 0; i < len && s + i < d.length; i++) {
+      const t = i / sr, p = t / dur;
+      const freq = startFreq * Math.pow(endFreq / startFreq, p);
+      phase += freq / sr;
+      const wave = type === 'tri' ? (4 * Math.abs(phase % 1 - 0.5) - 1) : Math.sin(2 * Math.PI * phase);
+      d[s + i] += wave * vol * Math.exp(-t / (dur * 0.4));
+    }
+  },
+
+  // --- Generate all buffers ---
+  _gen() {
+    const B = this._b, me = this;
+
+    // Bell at C5 for matchClear (use playbackRate for scale)
+    B.bell = me._pcm(0.45, (d, sr) => { me._addBell(d, sr, 523.3, 0, 0.4, 0.14); });
+
+    // Select (3 step variants)
+    [0, 1, 2].forEach(step => {
+      const freq = 698.5 * Math.pow(2, step * 40 / 1200);
+      B['sel' + step] = me._pcm(0.1, (d, sr) => {
+        me._addTri(d, sr, freq, 0, 0.07, 0.065, 0.025);
+        me._addNoise(d, sr, 0, 0.012, 0.018, 0.004);
+      });
+    });
+
+    // Mismatch
+    B.mis = me._pcm(0.25, (d, sr) => {
+      me._addChime(d, sr, 466.2, 0, 0.12, 0.08);
+      me._addChime(d, sr, 440.0, 0.05, 0.12, 0.08);
+      me._addNoise(d, sr, 0, 0.06, 0.03, 0.02);
+    });
+
+    // Tile fall
+    B.fall = me._pcm(0.07, (d, sr) => { me._addNoise(d, sr, 0, 0.05, 0.04, 0.015); });
+
+    // Ice break
+    B.ice = me._pcm(0.2, (d, sr) => {
+      me._addNoise(d, sr, 0, 0.08, 0.06, 0.02);
+      me._addChime(d, sr, 1200, 0.01, 0.12, 0.08);
+      me._addChime(d, sr, 2400, 0.03, 0.08, 0.04);
+    });
+
+    // Wheel tick
+    B.tick = me._pcm(0.02, (d, sr) => { me._addNoise(d, sr, 0, 0.015, 0.06, 0.003); });
+
+    // Row collapse
+    B.col = me._pcm(0.4, (d, sr) => {
+      me._addNoise(d, sr, 0, 0.03, 0.03, 0.008);
+      me._addSweep(d, sr, 1100, 350, 0, 0.12, 0.05, 'tri');
+      me._addChime(d, sr, 523.3, 0.06, 0.22, 0.06);
+      me._addChime(d, sr, 698.5, 0.12, 0.22, 0.07);
+    });
+
+    // Wheel land
+    B.land = me._pcm(0.9, (d, sr) => {
+      me._addChime(d, sr, 2093, 0, 0.06, 0.07);
+      me._addNoise(d, sr, 0, 0.025, 0.04, 0.008);
+      me._addBell(d, sr, 523.3, 0.02, 0.7, 0.10);
+      me._addBell(d, sr, 659.3, 0.05, 0.65, 0.12);
+      me._addBell(d, sr, 784.0, 0.09, 0.6, 0.13);
+      me._addBell(d, sr, 1046.5, 0.13, 0.55, 0.11);
+      me._addNoise(d, sr, 0.04, 0.18, 0.04, 0.06);
+      me._addNoise(d, sr, 0.12, 0.14, 0.035, 0.05);
+    });
+
+    // Win fanfare
+    B.win = me._pcm(2.0, (d, sr) => {
+      [392, 523.3, 659.3, 784, 1046.5].forEach((f, i) => {
+        me._addBell(d, sr, f, i * 0.07, 0.5 + i * 0.08, 0.09 + i * 0.015);
+      });
+      me._addBell(d, sr, 261.6, 0.40, 1.6, 0.10);
+      me._addBell(d, sr, 523.3, 0.42, 1.5, 0.14);
+      me._addBell(d, sr, 659.3, 0.44, 1.45, 0.13);
+      me._addBell(d, sr, 784.0, 0.46, 1.4, 0.14);
+      me._addBell(d, sr, 1046.5, 0.48, 1.3, 0.12);
+      me._addBell(d, sr, 1318.5, 0.50, 1.2, 0.08);
+      me._addNoise(d, sr, 0.35, 0.2, 0.05, 0.06);
+      me._addNoise(d, sr, 0.55, 0.18, 0.05, 0.06);
+      me._addNoise(d, sr, 0.75, 0.15, 0.04, 0.05);
+      me._addSine(d, sr, 65, 0.38, 1.47, 0.12, 0.5);
+    });
+
+    // Lose
+    B.lose = me._pcm(1.2, (d, sr) => {
+      me._addSweep(d, sr, 500, 200, 0, 0.3, 0.06, 'tri');
+      me._addBell(d, sr, 659.3, 0.05, 0.5, 0.09);
+      me._addBell(d, sr, 523.3, 0.25, 0.5, 0.08);
+      me._addBell(d, sr, 440.0, 0.45, 0.65, 0.08);
+      me._addChime(d, sr, 220.0, 0.70, 0.8, 0.06);
+      me._addNoise(d, sr, 0.5, 0.25, 0.025, 0.08);
+    });
+  },
+
+  // --- Playback (zero-allocation during gameplay) ---
+  _play(buf, vol, rate) {
+    if (!this.ctx || !buf) return;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    if (rate !== 1) src.playbackRate.value = rate;
     const g = this.ctx.createGain();
-    g.gain.setValueAtTime(vol, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    src.connect(f);
-    f.connect(g);
-    g.connect(this.master);
-    src.start(t);
-    src.stop(t + dur + 0.01);
+    g.gain.value = vol;
+    src.connect(g);
+    g.connect(this.ctx.destination);
+    src.start();
   },
 
-  // Ice break — crisp high shatter
-  iceBreak() {
-    this._noise(0, 0.08, 0.06, 4000, 2);
-    this._chime(1200, 0.01, 0.12, 0.08);
-    this._chime(2400, 0.03, 0.08, 0.04);
-  },
+  // --- Public API (same interface as before) ---
+  select(nth) { this._play(this._b['sel' + Math.min(nth - 1, 2)], 0.45, 1); },
+  mismatch() { this._play(this._b.mis, 0.45, 1); },
+  tileFall() { this._play(this._b.fall, 0.45, 1); },
+  iceBreak() { this._play(this._b.ice, 0.45, 1); },
+  rowCollapse() { this._play(this._b.col, 0.45, 1); },
+  wheelLand() { this._play(this._b.land, 0.45, 1); },
+  win() { this._play(this._b.win, 0.45, 1); },
+  lose() { this._play(this._b.lose, 0.45, 1); },
 
-  // Tile select — subtle micro-step escalation with tactile click
-  select(nth) {
-    if (!this.ctx) return;
-    const t = this.ctx.currentTime;
-    const base = 698.5; // F5
-    const step = Math.min(nth - 1, 2);
-    const freq = base * Math.pow(2, step * 40 / 1200); // +0, +40, +80 cents
-    const o = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    o.type = 'triangle';
-    o.frequency.value = freq;
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(0.065, t + 0.005);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
-    o.connect(g); g.connect(this.master);
-    o.start(t); o.stop(t + 0.09);
-    this._noise(0, 0.012, 0.018, 4500, 7);
-  },
-
-  // Mismatch — two dissonant soft tones
-  mismatch() {
-    this._chime(466.2, 0, 0.12, 0.08);
-    this._chime(440.0, 0.05, 0.12, 0.08);
-    this._noise(0, 0.06, 0.03, 600, 2);
-  },
-
-  // Match clear — pentatonic scale with combo-based layering
   matchClear() {
-    if (!this.ctx) return;
-    const scale = [523.3, 587.3, 659.3, 784.0, 880.0, 1046.5]; // C major pentatonic
-    const freq = scale[this._clearIdx % scale.length];
+    const rates = [1, 587.3/523.3, 659.3/523.3, 784/523.3, 880/523.3, 1046.5/523.3];
+    const rate = rates[this._clearIdx % rates.length];
     this._clearIdx++;
-
     const now = performance.now();
     this._combo = (now - this._lastClearT < 1800) ? Math.min(this._combo + 1, 5) : 0;
     this._lastClearT = now;
-
-    this._bell(freq, 0, 0.35, 0.12);
-    if (this._combo >= 1) this._chime(freq * 2, 0.03, 0.22, 0.04 + this._combo * 0.008);
-    if (this._combo >= 3) this._chime(freq * 1.5, 0.05, 0.18, 0.05);
-    if (this._combo >= 2) this._noise(0.02, 0.09, 0.02 + this._combo * 0.004, 6500, 2.5);
+    this._play(this._b.bell, 0.45, rate);
+    if (this._combo >= 1) this._play(this._b.bell, 0.15 + this._combo * 0.03, rate * 2);
   },
 
-  // Tile fall — soft thud
-  tileFall() {
-    this._noise(0, 0.05, 0.04, 300, 3);
-  },
+  wheelTick(vol) { this._play(this._b.tick, vol, 1); },
 
-  // Row collapse — light clack + descending swoosh + ascending chime
-  rowCollapse() {
-    if (!this.ctx) return;
-    const t = this.ctx.currentTime;
-    this._noise(0, 0.03, 0.03, 2400, 6);
-    const o = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    o.type = 'triangle';
-    o.frequency.setValueAtTime(1100, t);
-    o.frequency.exponentialRampToValueAtTime(350, t + 0.1);
-    g.gain.setValueAtTime(0.05, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
-    o.connect(g); g.connect(this.master);
-    o.start(t); o.stop(t + 0.15);
-    this._chime(523.3, 0.06, 0.22, 0.06);
-    this._chime(698.5, 0.12, 0.22, 0.07);
-  },
-
-  // Wheel land — bright reveal chord (no sub thud)
-  wheelLand() {
-    if (!this.ctx) return;
-    this._chime(2093, 0, 0.06, 0.07);
-    this._noise(0, 0.025, 0.04, 5500, 5);
-    this._bell(523.3, 0.02, 0.7, 0.10);
-    this._bell(659.3, 0.05, 0.65, 0.12);
-    this._bell(784.0, 0.09, 0.6, 0.13);
-    this._bell(1046.5, 0.13, 0.55, 0.11);
-    this._noise(0.04, 0.18, 0.04, 6000, 1.5);
-    this._noise(0.12, 0.14, 0.035, 8000, 2);
-  },
-
-  // Win — triumphant fanfare: quick ascending run → big sustained chord + sparkle cascade
-  win() {
-    if (!this.ctx) return;
-    // Ascending fanfare run (faster, brighter)
-    const run = [392, 523.3, 659.3, 784, 1046.5];
-    run.forEach((f, i) => {
-      this._bell(f, i * 0.07, 0.5 + i * 0.08, 0.09 + i * 0.015);
-    });
-    // Big sustained major chord (wider voicing, louder)
-    this._bell(261.6, 0.40, 1.6, 0.10);  // C4 — root bass
-    this._bell(523.3, 0.42, 1.5, 0.14);  // C5
-    this._bell(659.3, 0.44, 1.45, 0.13); // E5
-    this._bell(784.0, 0.46, 1.4, 0.14);  // G5
-    this._bell(1046.5, 0.48, 1.3, 0.12); // C6
-    this._bell(1318.5, 0.50, 1.2, 0.08); // E6 — top shimmer
-    // Sparkle cascade
-    this._noise(0.35, 0.2, 0.05, 5000, 1.5);
-    this._noise(0.55, 0.18, 0.05, 7000, 1.5);
-    this._noise(0.75, 0.15, 0.04, 9000, 2);
-    // Sub rumble for weight
-    const t = this.ctx.currentTime;
-    const o = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    o.type = 'sine';
-    o.frequency.value = 65;
-    g.gain.setValueAtTime(0, t + 0.38);
-    g.gain.linearRampToValueAtTime(0.12, t + 0.5);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 1.8);
-    o.connect(g); g.connect(this.master);
-    o.start(t + 0.38); o.stop(t + 1.85);
-  },
-
-  // Lose — soft descending A minor arpeggio (sad but consonant, no thud)
-  lose() {
-    if (!this.ctx) return;
-    const t = this.ctx.currentTime;
-    const o = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    o.type = 'triangle';
-    o.frequency.setValueAtTime(500, t);
-    o.frequency.exponentialRampToValueAtTime(200, t + 0.3);
-    g.gain.setValueAtTime(0.06, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
-    o.connect(g); g.connect(this.master);
-    o.start(t); o.stop(t + 0.4);
-    this._bell(659.3, 0.05, 0.5, 0.09);
-    this._bell(523.3, 0.25, 0.5, 0.08);
-    this._bell(440.0, 0.45, 0.65, 0.08);
-    this._chime(220.0, 0.70, 0.8, 0.06);
-    this._noise(0.5, 0.25, 0.025, 400, 1.5);
-  },
-
-  // Wheel tick — mechanical detent click
-  wheelTick(vol = 0.055) {
-    if (!this.ctx || !this._clickBuf) return;
-    const t = this.ctx.currentTime;
-    const src = this.ctx.createBufferSource();
-    src.buffer = this._clickBuf;
-    const f = this.ctx.createBiquadFilter();
-    f.type = 'bandpass';
-    f.frequency.value = 3200 + Math.random() * 400;
-    f.Q.value = 9;
-    const g = this.ctx.createGain();
-    g.gain.setValueAtTime(vol, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.01);
-    src.connect(f); f.connect(g); g.connect(this.master);
-    src.start(t); src.stop(t + 0.015);
-  },
-
-  // Tick scheduler for wheel spin. Returns stop function.
   startWheelTicks(durationMs = 3500) {
     const startT = performance.now();
     let lastTickT = 0, raf = 0, stopped = false;
@@ -2164,6 +2117,8 @@ const G = {
   },
 
   async wheelContinue() {
+    if (!S._wheelDone) return;
+    S._wheelDone = false; // prevent re-entry during fade
     // Fade to black
     const trans = $('roundTransition');
     trans.classList.remove('fade-out');
@@ -2184,6 +2139,8 @@ const G = {
   },
 
   wheelRestart() {
+    if (!S._wheelDone) return;
+    S._wheelDone = false; // prevent re-entry
     $('wheelOverlay').classList.remove('active');
     // Undo the modifier that was just applied
     const result = S._wheelResult;
