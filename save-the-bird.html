@@ -2082,6 +2082,21 @@ async function showRoundSplash(roundNum) {
   el.remove();
 }
 
+// DEBUG: log what element receives pointerdown when tiles miss
+const _hitDbg = { el: null };
+document.addEventListener('pointerdown', (e) => {
+  const t = e.target;
+  const id = t.id || t.className || t.tagName;
+  if (!_hitDbg.el) {
+    _hitDbg.el = document.createElement('div');
+    _hitDbg.el.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:4px 8px;background:rgba(0,0,0,0.85);color:#0f0;font:bold 11px monospace;z-index:99999;pointer-events:none;white-space:nowrap;overflow:hidden';
+    document.body.appendChild(_hitDbg.el);
+  }
+  const isTile = t.classList?.contains('tile');
+  _hitDbg.el.style.color = isTile ? '#0f0' : '#f44';
+  _hitDbg.el.textContent = `HIT: ${id} | tag:${t.tagName} | pe:${getComputedStyle(t).pointerEvents} | z:${getComputedStyle(t).zIndex}`;
+}, true);
+
 // ===== GAME CONTROLLER =====
 const G = {
   init() {
