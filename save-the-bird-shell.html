@@ -638,13 +638,87 @@ function renderTiles() {
   }
 }
 
+// ===== TILE HELPERS (needed by core.js) =====
+function getTileEl(id) {
+  return tileElMap.get(+id) || null;
+}
+
+function repositionTile(cell, row, col) {
+  var el = getTileEl(cell.id);
+  if (!el) return;
+  el.dataset.row = row;
+  el.dataset.col = col;
+  el.style.top = tileTop(row) + 'px';
+  el.style.left = tileLeft(col) + 'px';
+  el.style.zIndex = el.classList.contains('selected') ? 100 + S.totalRows - row : S.totalRows - row;
+}
+
+// ===== SPIKE GLINT =====
+var _spikeGlintTimer = null;
+function startSpikeGlint() {
+  if (_spikeGlintTimer) clearTimeout(_spikeGlintTimer);
+  function tick() {
+    if (S.phase !== 'playing') {
+      _spikeGlintTimer = setTimeout(tick, 2000);
+      return;
+    }
+    var isBottom = Math.random() < 0.7;
+    var container = $(isBottom ? 'spikeBarUp' : 'ceilingSpikes');
+    var spikeClass = isBottom ? '.sb-up' : '.spike-down';
+    var spikes = container.querySelectorAll(spikeClass);
+    if (spikes.length > 0) {
+      var spike = spikes[Math.floor(Math.random() * spikes.length)];
+      var spikeRect = spike.getBoundingClientRect();
+      var cageRect = cage.getBoundingClientRect();
+      var x = spikeRect.left - cageRect.left - cage.clientLeft + spikeRect.width / 2;
+      var y = isBottom
+        ? spikeRect.top - cageRect.top - cage.clientTop
+        : spikeRect.bottom - cageRect.top - cage.clientTop;
+      var glint = document.createElement('div');
+      glint.className = 'spike-tip-glint';
+      glint.style.left = x + 'px';
+      glint.style.top = y + 'px';
+      cage.appendChild(glint);
+      setTimeout(function() { glint.remove(); }, 280);
+    }
+    _spikeGlintTimer = setTimeout(tick, 1800 + Math.random() * 4500);
+  }
+  tick();
+}
+
+// ===== ICE BREAK =====
+function spawnIceBreak(el) {
+  var rect = el.getBoundingClientRect();
+  var gameRect = $('game').getBoundingClientRect();
+  var cx = rect.left - gameRect.left + rect.width / 2;
+  var cy = rect.top - gameRect.top + rect.height / 2;
+  for (var i = 0; i < 12; i++) {
+    var shard = document.createElement('div');
+    shard.className = 'ice-shard';
+    var angle = (Math.PI * 2 * i) / 12 + (Math.random() - 0.5) * 0.5;
+    var dist = 18 + Math.random() * 28;
+    shard.style.cssText = 'left:' + cx + 'px;top:' + cy + 'px;--ix:' + Math.cos(angle)*dist + 'px;--iy:' + Math.sin(angle)*dist + 'px';
+    $('game').appendChild(shard);
+    setTimeout(function(s) { return function() { s.remove(); }; }(shard), 550);
+  }
+}
+
+// ===== GAME EVENT =====
+function sendGameEvent(event, data) {
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage({ type: 'STRYM_GAME_EVENT', event: event, data: data }, '*');
+  }
+}
+
 // ===== STACK POSITIONING =====
 function positionStack() {
   var stackH = S.spikeH + PLANK_H + containerHeight() + PRESS_H;
   stack.style.transform = 'translateY(' + (stackH - S.visiblePx + S.stackBounceOffset) + 'px)';
 }
 
-// ===== BIRD POSITIONING (static, Round 1 initial) =====
+// ===== BIRD =====
+var _shellBirdRaf = null;
+
 function positionBird() {
   var birdIdx = 0;
   var vbData = BIRD_VB[birdIdx];
@@ -667,9 +741,65 @@ function positionBird() {
   var by = ceilBot + freeH * 0.3;
   S.birdX = bx;
   S.birdY = by;
+  S.birdTargetY = by;
   S.birdDir = -1;
   birdWrap.style.transform = 'translate(' + bx + 'px, ' + by + 'px)';
   birdWrap.className = 'calm';
+
+  // Start bird walking animation
+  startShellBirdLoop();
+}
+
+function startShellBirdLoop() {
+  var lastTs = 0;
+  function tick(ts) {
+    if (_shellTapped) return; // core.js takes over
+    if (!lastTs) { lastTs = ts; _shellBirdRaf = requestAnimationFrame(tick); return; }
+    var dt = Math.min(ts - lastTs, 50);
+    lastTs = ts;
+    shellUpdateBird(dt);
+    _shellBirdRaf = requestAnimationFrame(tick);
+  }
+  _shellBirdRaf = requestAnimationFrame(tick);
+}
+
+function shellUpdateBird(dt) {
+  var bh = S.cageH * 0.1728 * S.birdScale;
+  var birdW = bh * (S.birdAspect || 1);
+  var maxBirdW = S.cageW - 32;
+  if (birdW > maxBirdW) { birdW = maxBirdW; bh = birdW / (S.birdAspect || 1); }
+
+  var overhang = birdW * (1 - (S.bodyFrac || 1));
+  var minX = 4 - overhang * 0.5;
+  var maxX = Math.max(minX + 20, S.cageW - birdW - 16 + overhang * 0.5);
+  var spikeTop = S.cageH - S.visiblePx;
+  var ceilBot = S.spikeH;
+  var freeH = Math.max(10, spikeTop - ceilBot - bh);
+
+  // Horizontal movement
+  var hSpeed = 50;
+  S.birdX += S.birdDir * hSpeed * (dt / 1000);
+  if (S.birdX >= maxX) {
+    S.birdX = maxX;
+    S.birdDir = -1;
+    S.birdTargetY = ceilBot + 4 + Math.random() * Math.max(5, freeH * 0.5);
+  } else if (S.birdX <= minX) {
+    S.birdX = minX;
+    S.birdDir = 1;
+    S.birdTargetY = ceilBot + 4 + Math.random() * Math.max(5, freeH * 0.5);
+  }
+
+  // Vertical movement
+  var vSpeed = hSpeed * 0.3;
+  var vDiff = S.birdTargetY - S.birdY;
+  S.birdY += Math.sign(vDiff) * Math.min(Math.abs(vDiff), vSpeed * (dt / 1000));
+  var maxY = ceilBot + freeH;
+  var minY = ceilBot + 2;
+  if (S.birdY > maxY) S.birdY += (maxY - S.birdY) * 0.15;
+  if (S.birdY < minY) S.birdY += (minY - S.birdY) * 0.15;
+
+  var flip = S.birdDir > 0 ? ' scaleX(-1)' : '';
+  birdWrap.style.transform = 'translate(' + S.birdX + 'px, ' + S.birdY + 'px)' + flip;
 }
 
 // ===== SHELL INIT =====
@@ -722,6 +852,9 @@ function onShellTileTap(row, col, el) {
   // Visually select the tile
   el.classList.add('selected');
   el.style.zIndex = 100 + S.totalRows - row;
+
+  // Stop shell bird animation
+  if (_shellBirdRaf) { cancelAnimationFrame(_shellBirdRaf); _shellBirdRaf = null; }
 
   // Remove shell event listeners
   tileContainer.removeEventListener('pointerdown', shellPointerDown);
@@ -787,6 +920,11 @@ function onShellTileTap(row, col, el) {
     renderTiles: renderTiles,
     positionStack: positionStack,
     initGrid: initGrid,
+    getTileEl: getTileEl,
+    repositionTile: repositionTile,
+    startSpikeGlint: startSpikeGlint,
+    spawnIceBreak: spawnIceBreak,
+    sendGameEvent: sendGameEvent,
   };
 
   // Load core.js
